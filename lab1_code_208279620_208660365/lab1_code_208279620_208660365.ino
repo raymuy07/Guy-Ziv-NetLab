@@ -101,7 +101,7 @@ void usart_rx(){
     bit_read=0;
     if (rx_counter==8){
       Serial.println((char)rx_data);
-      rx_data = 0
+      rx_data = 0;
       rx_counter=0;
     }
 
