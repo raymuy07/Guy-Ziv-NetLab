@@ -1,8 +1,8 @@
 // C++ code
 //
 
-#define BIT_wait_time 1000
-#define BIT_half_wait_time 500
+#define BIT_wait_time 20
+#define BIT_half_wait_time 10
 
 #define Tx_Data_Line 5
 #define Rx_Data_Line 4
@@ -14,7 +14,7 @@ long current_time;
 long ref_time;
 long random_wait_time;
 char data = 'a';
-int rx_data = 0; /////////////////////////////////
+int rx_data = 0;
 int IDLE=0;
 int tx_clock=0;
 int rx_clock_last , rx_clock_current=0 ;
@@ -49,7 +49,7 @@ void usart_tx(){
     //random wait time
     if(current_time-ref_time >= random_wait_time){
      IDLE=0; 
-     ref_time = millis();////
+     ref_time = millis();
     }
     
   }
@@ -96,14 +96,14 @@ void usart_rx(){
   //indication that clock is going down
   if ((rx_clock_last) && !(rx_clock_current)){
     bit_read = digitalRead(Rx_Data_Line);   // read the input pin
-    rx_data |= (bit_read<<rx_counter);//////////////////
-    rx_counter++;////////////////////
-    bit_read=0;////////////////
-    if (rx_counter==8){////////////////////
-      Serial.println((char)rx_data);///////////////
-      rx_data = 0;///////////////
-      rx_counter=0;///
-    }////////////////////////
+    rx_data |= (bit_read<<rx_counter);
+    rx_counter++;
+    bit_read=0;
+    if (rx_counter==8){
+      Serial.println((char)rx_data);
+      rx_data = 0
+      rx_counter=0;
+    }
 
   }
 }
