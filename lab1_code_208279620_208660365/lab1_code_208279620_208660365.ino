@@ -11,7 +11,8 @@
 
 
 long current_time;
-long ref_time; 
+long ref_time;
+long random_wait_time;
 char data = 'a';
 int rx_data = 0; /////////////////////////////////
 int IDLE=0;
@@ -32,6 +33,7 @@ void setup()
   pinMode(TX_Clock_Line, OUTPUT); 
   pinMode(RX_Clock_Line, INPUT); 
 
+  random_wait_time = random(1000,7000);
   bit_read = 0;
   counter_tx=0;
   rx_counter=0;
@@ -45,9 +47,9 @@ void usart_tx(){
   if (IDLE==1){
     
     //random wait time
-    if(current_time-ref_time >= 5000){
+    if(current_time-ref_time >= random_wait_time){
      IDLE=0; 
-      // maybe should add ref_time = milis(); ?????
+     ref_time = millis();////
     }
     
   }
@@ -55,30 +57,31 @@ void usart_tx(){
   else if(current_time-ref_time >= BIT_half_wait_time){
     switch(tx_clock){
       
-    case(0):
-    digitalWrite(TX_Clock_Line, HIGH);
+	  case(0):
+	  digitalWrite(TX_Clock_Line, HIGH);
       tx_clock=1;
       current_bit = bitRead(data , counter_tx);
 
-          if (current_bit){
-            digitalWrite(Tx_Data_Line, HIGH);
-          }
-          else{
-              digitalWrite(Tx_Data_Line, LOW);
+        	if (current_bit){
+         	 	digitalWrite(Tx_Data_Line, HIGH);
+        	}
+        	else{
+           		digitalWrite(Tx_Data_Line, LOW);
             }
       counter_tx++;
       ref_time = millis();
-    break;
+	  break;
       
       case(1):
       digitalWrite(TX_Clock_Line, LOW);
       tx_clock=0;
-          if (counter_tx == 8){
-            counter_tx = 0;
-            IDLE=1;
+        	if (counter_tx == 8){
+        		counter_tx = 0;
+        		IDLE=1;
+              	random_wait_time = random(1000,7000);
             }
       ref_time = millis();
-    break;
+	  break;
   }
 }
   
@@ -93,13 +96,13 @@ void usart_rx(){
   //indication that clock is going down
   if ((rx_clock_last) && !(rx_clock_current)){
     bit_read = digitalRead(Rx_Data_Line);   // read the input pin
-    bit_read >> (rx_counter);///////////////////////
+    rx_data |= (bit_read<<rx_counter);//////////////////
     rx_counter++;////////////////////
-    rx_data=rx_data|bit_read;//////////////////
     bit_read=0;////////////////
     if (rx_counter==8){////////////////////
-      Serial.println(rx_data);///////////////
+      Serial.println((char)rx_data);///////////////
       rx_data = 0;///////////////
+      rx_counter=0;///
     }////////////////////////
 
   }
