@@ -75,12 +75,39 @@ void uart_tx(){
 	}
 }
 
-
-void uart_rx(){
 	
-	current_time = millis();
-
-	if(current_time-ref_time >= delta_time){
+void usart_rx(){
+  switch(state):
+    case IDLE:  
+      data=digitalread(dataPin)
+      if data ==0:
+        state= start;
+      break;
+   case start:
+      //sample 4 more times
+      //sample_data(index=1)
+      if sample && mask == 0:
+          state = DATA
+       break;
+    case DATA:
+        //sample 5 times
+        //sample_data()
+        rec_bit = sample && mask
+        rx_data|= rec_bit>>counter;
+        counter++
+        if counter == 7:
+            state = PARITY
+      case PARITY:
+          //sample 5 times
+          parityBit=sample & mask
+          //check parity func
+          state = STOP
+      case STOP:
+          //sample 5 times
+          ENDBit = sample & mask
+          if ENDbit=1://or 0
+              state=IDLE
+    }
 		
 		
 		
@@ -106,3 +133,8 @@ void loop() {
  
  
 }
+
+
+
+
+
