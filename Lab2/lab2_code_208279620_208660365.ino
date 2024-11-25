@@ -1,17 +1,34 @@
 // C++ code
 //
 
-//set tx pin 
-//set rx pin
+
+
+#define Tx_Data_Line 5
+#define Rx_Data_Line 4
+#define BIT_wait_time 20
+
+//times
+long current_time;
+long ref_time;
+long random_wait_time;
+long delta_time;
+
+int samp_time = 3;
+int IDLE=0;
+char data = 'a';
 
 void setup()
 {
-  //for debug
-  Serial.begin(9600); 
-  // opens serial port, sets data rate to 9600 bps  //end debug
+	//open_serial_port
+	Serial.begin(9600); 
   
-  ///calculate delta_time depend on bit time
-  
+	pinMode(Tx_Data_Line, OUTPUT); 
+	pinMode(Rx_Data_Line, INPUT); 
+	
+	///calculate delta_time depend on bit time
+	delta_time = BIT_wait_time / (samp_time + 2);
+    ref_time = millis();
+
 }
 
 //is idle
@@ -29,6 +46,23 @@ void setup()
 
 
 
+
+void uart_rx(){
+	
+	current_time = millis();
+
+	if(current_time-ref_time >= delta_time){
+		
+		
+		
+		
+	}
+	
+	
+    ref_time = millis();
+
+
+}
 //Rx function
 
 //if it is time to read
