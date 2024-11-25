@@ -1,8 +1,6 @@
 // C++ code
 //
 
-
-
 #define Tx_Data_Line 5
 #define Rx_Data_Line 4
 #define BIT_wait_time 20
@@ -17,6 +15,8 @@ int samp_time = 3;
 int IDLE=0;
 char data = 'a';
 
+int counter_tx;
+
 void setup()
 {
 	//open_serial_port
@@ -28,6 +28,7 @@ void setup()
 	///calculate delta_time depend on bit time
 	delta_time = BIT_wait_time / (samp_time + 2);
     ref_time = millis();
+	
 
 }
 
@@ -45,6 +46,34 @@ void setup()
 		//check last state of clock
 
 
+bool are_we_starting(){
+	
+	
+	
+	
+}
+
+void uart_tx(){
+	
+	current_time = millis();
+	if (IDLE==1){
+    
+		//random wait time
+		if(current_time-ref_time >= random_wait_time){
+			IDLE=0;
+			counter_tx= 0;
+			
+			ref_time = millis();
+		
+		}
+	}
+	else{
+		
+		
+		
+		
+	}
+}
 
 
 void uart_rx(){
@@ -71,6 +100,9 @@ void uart_rx(){
 	//check switch case on buffer 
 
 void loop() {
+	
+	uart_rx();
+	uart_tx();
  
  
 }
