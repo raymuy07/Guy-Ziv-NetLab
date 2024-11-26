@@ -52,7 +52,7 @@ void setup()
 
 void uart_tx(){
 	
-	current_time = millis();
+	current_time = millis(); 
 	if (IDLE==1){
     
 		//random wait time
@@ -86,11 +86,11 @@ int wrapper_sample_data(int index = 0) {
 	}
   
 	
-	current_time = millis();
+	current_time = millis();//running over global current_time, maybe trouble timing bitTime
 	if(current_time-ref_time >= delta_time){
 		
 		int bit = digitalRead(Rx_Data_Line);
-		sample = (sample << 1) | bit;  // Shift left and add the new bit
+		sample = (sample << 1) | bit;  // Shift left and add the new bit// could cause problems with real arduino
       	counter++;
 	}
 	
@@ -100,7 +100,7 @@ int wrapper_sample_data(int index = 0) {
       
       if(result == 14){
         result=1;
-      }
+      }//need to loo at editing software, looks like we're reseting counter everytime (notepad)
       
       counter = 0;                  // Reset counter for the next cycle
       sample = 0;  
@@ -118,7 +118,7 @@ int wrapper_sample_data(int index = 0) {
 }
 
 
-void usart_rx(){
+void usart_rx(){//didnt look here yet
 	
 	
 	switch (state) {
