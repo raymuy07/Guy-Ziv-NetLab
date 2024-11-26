@@ -19,11 +19,17 @@ long random_wait_time;
 long delta_time;
 
 int samp_time = 3;
-int IDLE=0;
 int rx_rec_data;
 
 char data = 'a';
 int counter_tx;
+
+int index=0;
+int state = IDLE ;
+int result_data;
+int rx_data =0;
+
+
 
 void setup()
 {
@@ -36,25 +42,13 @@ void setup()
 	///calculate delta_time depend on bit time
 	delta_time = BIT_wait_time / (samp_time + 2);
     ref_time = millis();
-	
+	Serial.println("hey");
+
 
 }
 
-//is idle
 
-	//yes idle
-		//check if random_time passed
-
-	//no idle
-		//check if data is set with all added bits
-		//build new data block
-		//if it time to send
-		
-
-		//check last state of clock
-
-
-
+/*
 
 void uart_tx(){
 	
@@ -78,9 +72,11 @@ void uart_tx(){
 	}
 }
 
+*/
 
 
-int wrapper_sample_data(int &index) {
+
+int wrapper_sample_data(int index = 0) {
 	
 	static int counter = 0;          // track number of calls
 	static int sample = 0; 
@@ -89,52 +85,38 @@ int wrapper_sample_data(int &index) {
     counter = index; 	// Set counter to match the initial value of index
 	}
   
-	current_time = millis();
 	
+	current_time = millis();
 	if(current_time-ref_time >= delta_time){
 		
 		int bit = digitalRead(Rx_Data_Line);
-		sample = (sample << index) | bit;   // Shift left and add the new bit
-		counter++;
+		sample = (sample << 1) | bit;  // Shift left and add the new bit
+      	counter++;
 	}
 	
 	if (counter == 5){             // Check if 5 samples have been collected
 	
-		int result = sample & 0b1110; 
-		counter = 0;                  // Reset counter for the next cycle
-		sample = 0;       
-		return result;                
+	  int result = sample & 0b1110;
+      
+      if(result == 14){
+        result=1;
+      }
+      
+      counter = 0;                  // Reset counter for the next cycle
+      sample = 0;  
+
+      ref_time = millis(); // Reset timing
+      
+      
+      return result;                
 	
 	}
 	
+	ref_time = millis(); // Reset timing
 	return -1;
 
 }
 
-/*
-void sample_data(int global_index){
-	
-	if (global_index > 4){
-		global_index=0
-	}
-	
-	
-	current_time = millis();
-	if(current_time-ref_time >= delta_time){
-		
-		int bit = digitalRead(Rx_Data_Line);
-		sample = (sample << index) | bit;   // Shift left and add the new bit
-		global_index++;
-	
-	
-	}
-	if (global_index > 4){
-		global_index=0
-	}
-	ref_time = millis();
-}
-
-*/
 
 void usart_rx(){
 	
@@ -145,109 +127,73 @@ void usart_rx(){
       rx_rec_data = digitalRead(Rx_Data_Line);
       if (rx_rec_data == 0) {
         state = START;
-		global_index = 1;
-
       }
       break;
 
     case START:
-      // Sample 4 more times
-      sample_data(global_index);
-      if (sample && 0b1110 == 0) {
+	  // Sample 4 times
+	  result_data = wrapper_sample_data(index=1);
+      Serial.println(result_data);
+
+      if (result_data == 0) {
         state = DATA;
+        Serial.println(state);
+
       }
+      //state = DATA;
       break;
 
-    case DATA:
-      // Sample 5 times and then check bit
-      sample_data(global_index);
-      rec_bit = sample && 0b1110;
-      rx_data |= rec_bit >> counter;
-      counter++;
-      if (counter == 7) {
-        state = PARITY;
-      }
-      break;
+    
+	case DATA:
+	  result_data = wrapper_sample_data();
+      Serial.println(result_data);
 
-    case PARITY:
-      // Sample 5 times and then check bit
-	  sample_data(global_index);
-      parityBit = sample & 0b1110;
-      // Check parity function here (implement parity check)
-      state = STOP;
-      break;
+        if (result_data != -1) {
+            int rec_bit = result_data;
+            rx_data |= (rec_bit >> counter_tx);
+            counter_tx++;
+            if (counter_tx == 7) {
+                state = PARITY;
+                counter_tx = 0; 
+            }
+        }
+		break;
+
+    
+	case PARITY:
+        result_data = wrapper_sample_data();
+        if (result_data != -1) {
+            int parity_bit = result_data;
+            // Add parity check logic here
+            state = STOP;
+        }
+        break;
 
     case STOP:
-      // Sample 5 times and then check bit
-	  sample_data(global_index);
-      ENDBit = sample & 0b1110;
-      if (ENDBit == 1) {  // or 0 depending on your condition
-        state = IDLE;
-      }
-      break;
-
-    default:
-      state = IDLE;  // Default case if an invalid state occurs
-      break;
-  }
-  
-}
-void usart_rx(){
-  
-  switch(state):
-    case (IDLE):  
-      data=digitalread(dataPin)
-      if data ==0:
-        state= start;
-      break;
-	case (start):
-      //sample 4 more times
-      //sample_data(index=1)
-      if sample && mask == 0:
-          state = DATA
-       break;
-    case DATA:
-        //sample 5 times
-        //sample_data()
-        rec_bit = sample && mask
-        rx_data|= rec_bit>>counter;
-        counter++
-        if counter == 7:
-            state = PARITY
-      case PARITY:
-          //sample 5 times
-          parityBit=sample & mask
-          //check parity func
-          state = STOP
-      case STOP:
-          //sample 5 times
-          ENDBit = sample & mask
-          if ENDbit=1://or 0
-              state=IDLE
-    }
-		
-		
-		
-		
-	}
-	
-	
-    ref_time = millis();
+        result_data = wrapper_sample_data();
+        if (result_data != -1) {
+            int end_bit = result_data;
+            if (end_bit == 1) {
+                state = IDLE;
+                rx_data = 0; // Reset received data
+            }
+        }
+        break;
 
 
 }
-//Rx function
+  
+}	
+		
 
-//if it is time to read
-	//enter data to buffer
-	//if counter==5 
-	//check switch case on buffer 
+	
+
 
 void loop() {
 	
-	uart_rx();
-	uart_tx();
- 
+	usart_rx();
+	
+  //uart_tx();
  
 }
 
