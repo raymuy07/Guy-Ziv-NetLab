@@ -10,7 +10,10 @@
 #define DATA 2
 #define PARITY 3
 #define STOP 4
-
+#define TX_IDLE 0
+#define TX_START 1
+#define TX_DATA 2
+#define TX_PARITY 3
 
 //times
 long current_time;
@@ -47,7 +50,6 @@ void setup()
 
 }
 
-
 /*
 
 void uart_tx(){
@@ -76,17 +78,17 @@ void uart_tx(){
 
 
 
-int wrapper_sample_data(int index = 0) {
+int wrapper_sample_data(int &index) {
 	
 	static int counter = 0;          // track number of calls
 	static int sample = 0; 
 	
 	if (counter == 0) {
-    counter = index; 	// Set counter to match the initial value of index
+    	counter = index; 	// Set counter to match the initial value of index
 	}
-  
+  	Serial.print("sampled ");
 	
-	current_time = millis();//running over global current_time, maybe trouble timing bitTime
+	current_time = millis();
 	if(current_time-ref_time >= delta_time){
 		
 		int bit = digitalRead(Rx_Data_Line);
@@ -106,7 +108,6 @@ int wrapper_sample_data(int index = 0) {
       sample = 0;  
 
       ref_time = millis(); // Reset timing
-      
       
       return result;                
 	
@@ -132,21 +133,22 @@ void usart_rx(){//didnt look here yet
 
     case START:
 	  // Sample 4 times
-	  result_data = wrapper_sample_data(index=1);
-      Serial.println(result_data);
 
+	  result_data = wrapper_sample_data(index=1);
+
+      
       if (result_data == 0) {
         state = DATA;
-        Serial.println(state);
+        
 
       }
-      //state = DATA;
       break;
 
     
 	case DATA:
-	  result_data = wrapper_sample_data();
-      Serial.println(result_data);
+      Serial.println("Data");
+	  result_data = wrapper_sample_data(index=0);
+      Serial.println(result_data);//arriving here succesfuly
 
         if (result_data != -1) {
             int rec_bit = result_data;
@@ -161,7 +163,7 @@ void usart_rx(){//didnt look here yet
 
     
 	case PARITY:
-        result_data = wrapper_sample_data();
+        result_data = wrapper_sample_data(index=0);
         if (result_data != -1) {
             int parity_bit = result_data;
             // Add parity check logic here
@@ -170,7 +172,7 @@ void usart_rx(){//didnt look here yet
         break;
 
     case STOP:
-        result_data = wrapper_sample_data();
+        result_data = wrapper_sample_data(index=0);
         if (result_data != -1) {
             int end_bit = result_data;
             if (end_bit == 1) {
@@ -196,7 +198,6 @@ void loop() {
   //uart_tx();
  
 }
-
 
 
 
