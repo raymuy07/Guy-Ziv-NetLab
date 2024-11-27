@@ -17,7 +17,7 @@
 
 //times
 long current_time;
-long ref_time;
+long Rx_ref_time , Tx_ref_time;
 long random_wait_time;
 long delta_time;
 
@@ -44,25 +44,29 @@ void setup()
 	
 	///calculate delta_time depend on bit time
 	delta_time = BIT_wait_time / (samp_time + 2);
-    ref_time = millis();
+    
+	
+	Rx_ref_time = millis();
+	Tx_ref_time = millis();
+	
 	Serial.println("hey");
 
 
 }
 
-/*
 
-void uart_tx(){
+
+void usart_tx(){
 	
 	current_time = millis(); 
 	if (IDLE==1){
     
 		//random wait time
-		if(current_time-ref_time >= random_wait_time){
+		if(current_time - Tx_ref_time >= random_wait_time){
 			IDLE=0;
 			counter_tx= 0;
 			
-			ref_time = millis();
+			Tx_ref_time = millis();
 		
 		}
 	}
@@ -74,7 +78,6 @@ void uart_tx(){
 	}
 }
 
-*/
 
 
 
@@ -89,7 +92,7 @@ int wrapper_sample_data(int &index) {
   	Serial.print("sampled ");
 	
 	current_time = millis();
-	if(current_time-ref_time >= delta_time){
+	if(current_time- Rx_ref_time >= delta_time){
 		
 		int bit = digitalRead(Rx_Data_Line);
 		sample = (sample << 1) | bit;  // Shift left and add the new bit// could cause problems with real arduino
@@ -107,13 +110,13 @@ int wrapper_sample_data(int &index) {
       counter = 0;                  // Reset counter for the next cycle
       sample = 0;  
 
-      ref_time = millis(); // Reset timing
+      Rx_ref_time = millis(); // Reset timing
       
       return result;                
 	
 	}
 	
-	ref_time = millis(); // Reset timing
+	Rx_ref_time = millis(); // Reset timing
 	return -1;
 
 }
@@ -194,8 +197,7 @@ void usart_rx(){//didnt look here yet
 void loop() {
 	
 	usart_rx();
-	
-  //uart_tx();
+	usart_tx();
  
 }
 
