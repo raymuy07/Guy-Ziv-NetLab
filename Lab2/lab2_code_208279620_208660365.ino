@@ -10,10 +10,13 @@
 #define DATA 2
 #define PARITY 3
 #define STOP 4
+
+/*
 #define TX_IDLE 0
 #define TX_START 1
 #define TX_DATA 2
 #define TX_PARITY 3
+*/
 
 //times
 long current_time;
@@ -25,10 +28,10 @@ int samp_time = 3;
 int rx_rec_data;
 
 char data = 'a';
-int counter_tx;
 
 int index=0;
-int state = IDLE ;
+int state_rx = IDLE ;
+int state_tx = IDLE;
 int result_data;
 int rx_data =0;
 
@@ -59,26 +62,64 @@ void setup()
 void usart_tx(){
 	
 	current_time = millis(); 
-	if (IDLE==1){
+	
+	if (state == IDLE){
     
 		//random wait time
 		if(current_time - Tx_ref_time >= random_wait_time){
-			IDLE=0;
+			
+			state_tx == START;
 			counter_tx= 0;
 			
 			Tx_ref_time = millis();
 		
 		}
 	}
-	else{
+	else if(current_time - Tx_ref_time >= BIT_wait_time){
+	
+		switch(state_tx){
+		  
+		  case(START):
+		  
+		  static int counter_tx = 0;
+		  static int parity_bit = 0;
+
+		  digitalWrite(Tx_Data_Line, LOW);
+		  state_tx = DATA;
+		  Tx_ref_time = millis();
+		  break;
+
+		  case(DATA):
+		  if (counter_tx < 8) { 
+			  int current_bit = bitRead(data , counter_tx);
+			  digitalWrite(Tx_Data_Line, current_bit);
+			  parity_bit ^= current_bit;                 // Calculate parity using XOR
+			  counter_tx++;
+		  }else {
+		     state_tx = PARITY;
+		  }
+		  Tx_ref_time = millis();
+		  break;
+		  
+		  
+		  case(PARITY):		  
+		  digitalWrite(Tx_Data_Line, parity_bit ^ 1);
+		  state_tx = STOP;
+		  Tx_ref_time = millis();
+		  break;
 		
-		
+		  case(STOP):
+		  digitalWrite(Tx_Data_Line, HIGH);
+		  state_tx = IDLE;
+		  Tx_ref_time = millis();
+		  break;
+
 		
 		
 	}
 }
 
-
+}
 
 
 int wrapper_sample_data(int &index) {
@@ -125,40 +166,36 @@ int wrapper_sample_data(int &index) {
 void usart_rx(){//didnt look here yet
 	
 	
-	switch (state) {
+	switch (state_rx) {
     
 	case IDLE:
       rx_rec_data = digitalRead(Rx_Data_Line);
       if (rx_rec_data == 0) {
-        state = START;
+        state_rx = START;
       }
       break;
 
     case START:
 	  // Sample 4 times
-
 	  result_data = wrapper_sample_data(index=1);
 
-      
       if (result_data == 0) {
-        state = DATA;
-        
-
+        state_rx = DATA;
       }
       break;
 
     
 	case DATA:
-      Serial.println("Data");
+	
 	  result_data = wrapper_sample_data(index=0);
-      Serial.println(result_data);//arriving here succesfuly
+	  Serial.println(result_data);//arriving here succesfuly
 
         if (result_data != -1) {
             int rec_bit = result_data;
             rx_data |= (rec_bit >> counter_tx);
             counter_tx++;
             if (counter_tx == 7) {
-                state = PARITY;
+                state_rx = PARITY;
                 counter_tx = 0; 
             }
         }
@@ -170,7 +207,7 @@ void usart_rx(){//didnt look here yet
         if (result_data != -1) {
             int parity_bit = result_data;
             // Add parity check logic here
-            state = STOP;
+            state_rx = STOP;
         }
         break;
 
@@ -179,7 +216,7 @@ void usart_rx(){//didnt look here yet
         if (result_data != -1) {
             int end_bit = result_data;
             if (end_bit == 1) {
-                state = IDLE;
+                state_rx = IDLE;
                 rx_data = 0; // Reset received data
             }
         }
