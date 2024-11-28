@@ -62,15 +62,15 @@ void setup()
 void usart_tx(){
 	
 	current_time = millis(); 
+	static int counter_tx = 0;
+	static int parity_bit = 0;	
 	
-	if (state == IDLE){
+	if (state_tx == IDLE){
     
 		//random wait time
 		if(current_time - Tx_ref_time >= random_wait_time){
 			
-			state_tx == START;
-			counter_tx= 0;
-			
+			state_tx = START;
 			Tx_ref_time = millis();
 		
 		}
@@ -80,10 +80,8 @@ void usart_tx(){
 		switch(state_tx){
 		  
 		  case(START):
-		  
-		  static int counter_tx = 0;
-		  static int parity_bit = 0;
-
+		  parity_bit = 0;
+		  counter_tx = 0;
 		  digitalWrite(Tx_Data_Line, LOW);
 		  state_tx = DATA;
 		  Tx_ref_time = millis();
@@ -95,10 +93,13 @@ void usart_tx(){
 			  digitalWrite(Tx_Data_Line, current_bit);
 			  parity_bit ^= current_bit;                 // Calculate parity using XOR
 			  counter_tx++;
+			  Tx_ref_time = millis();
+
 		  }else {
 		     state_tx = PARITY;
+			 Tx_ref_time = millis();
+
 		  }
-		  Tx_ref_time = millis();
 		  break;
 		  
 		  
@@ -130,7 +131,6 @@ int wrapper_sample_data(int &index) {
 	if (counter == 0) {
     	counter = index; 	// Set counter to match the initial value of index
 	}
-  	Serial.print("sampled ");
 	
 	current_time = millis();
 	if(current_time- Rx_ref_time >= delta_time){
@@ -138,6 +138,7 @@ int wrapper_sample_data(int &index) {
 		int bit = digitalRead(Rx_Data_Line);
 		sample = (sample << 1) | bit;  // Shift left and add the new bit// could cause problems with real arduino
       	counter++;
+
 	}
 	
 	if (counter == 5){             // Check if 5 samples have been collected
@@ -146,13 +147,18 @@ int wrapper_sample_data(int &index) {
       
       if(result == 14){
         result=1;
-      }//need to loo at editing software, looks like we're reseting counter everytime (notepad)
+      } else if (result == 0){
+        result=0;
+      }
+      else{
+        result= -1;
+      }
       
       counter = 0;                  // Reset counter for the next cycle
       sample = 0;  
 
       Rx_ref_time = millis(); // Reset timing
-      
+
       return result;                
 	
 	}
@@ -165,7 +171,8 @@ int wrapper_sample_data(int &index) {
 
 void usart_rx(){//didnt look here yet
 	
-	
+	static int counter_rx = 0;
+
 	switch (state_rx) {
     
 	case IDLE:
@@ -188,15 +195,17 @@ void usart_rx(){//didnt look here yet
 	case DATA:
 	
 	  result_data = wrapper_sample_data(index=0);
-	  Serial.println(result_data);//arriving here succesfuly
 
         if (result_data != -1) {
             int rec_bit = result_data;
-            rx_data |= (rec_bit >> counter_tx);
-            counter_tx++;
-            if (counter_tx == 7) {
+          	Serial.println("rec");
+		    Serial.println(rec_bit);
+
+            rx_data |= (rec_bit >> counter_rx);
+            counter_rx++;
+            if (counter_rx == 7) {
                 state_rx = PARITY;
-                counter_tx = 0; 
+                counter_rx = 0; 
             }
         }
 		break;
@@ -234,9 +243,15 @@ void usart_rx(){//didnt look here yet
 void loop() {
 	
 	usart_rx();
+          Serial.println("sample");
+
 	usart_tx();
  
+  
+  
 }
+
+
 
 
 
