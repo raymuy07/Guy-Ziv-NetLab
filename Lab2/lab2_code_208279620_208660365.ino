@@ -11,12 +11,6 @@
 #define PARITY 3
 #define STOP 4
 
-/*
-#define TX_IDLE 0
-#define TX_START 1
-#define TX_DATA 2
-#define TX_PARITY 3
-*/
 
 //times
 long current_time;
@@ -33,7 +27,6 @@ int index=0;
 int state_rx = IDLE ;
 int state_tx = IDLE;
 int result_data;
-int rx_data =0;
 
 
 
@@ -169,9 +162,12 @@ int wrapper_sample_data(int &index) {
 }
 
 
-void usart_rx(){//didnt look here yet
+void usart_rx(){
 	
 	static int counter_rx = 0;
+	static int data_parity_bit = 0;	
+    static int rx_parity_bit = 0;	
+    static int rx_data = 0;
 
 	switch (state_rx) {
     
@@ -198,6 +194,8 @@ void usart_rx(){//didnt look here yet
 
         if (result_data != -1) {
             int rec_bit = result_data;
+			data_parity_bit ^= rec_bit;                 // Calculate parity using XOR
+
           	Serial.println("rec");
 		    Serial.println(rec_bit);
 
@@ -214,9 +212,10 @@ void usart_rx(){//didnt look here yet
 	case PARITY:
         result_data = wrapper_sample_data(index=0);
         if (result_data != -1) {
-            int parity_bit = result_data;
-            // Add parity check logic here
+            
+            rx_parity_bit = result_data;
             state_rx = STOP;
+        
         }
         break;
 
@@ -225,8 +224,18 @@ void usart_rx(){//didnt look here yet
         if (result_data != -1) {
             int end_bit = result_data;
             if (end_bit == 1) {
-                state_rx = IDLE;
-                rx_data = 0; // Reset received data
+                
+				if (rx_parity_bit == data_parity_bit){
+				
+					Serial.println((char)rx_data);
+				}
+				
+				Serial.println("END");
+				state_rx = IDLE;
+                rx_data = 0; 
+                rx_parity_bit = 0;
+                data_parity_bit = 0;
+
             }
         }
         break;
@@ -243,8 +252,8 @@ void usart_rx(){//didnt look here yet
 void loop() {
 	
 	usart_rx();
-          Serial.println("sample");
-
+    
+	Serial.println("sample");
 	usart_tx();
  
   
