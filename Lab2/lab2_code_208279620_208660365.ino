@@ -3,7 +3,7 @@
 
 #define Tx_Data_Line 5
 #define Rx_Data_Line 4
-#define BIT_wait_time 20
+#define BIT_wait_time 50
 
 #define IDLE 0
 #define START 1
@@ -43,7 +43,8 @@ void setup()
     
 	random_wait_time = random(1000,7000);
 
-	
+	digitalWrite(Tx_Data_Line, HIGH);
+
 	Rx_ref_time = millis();
 	Tx_ref_time = millis();
 	
@@ -123,10 +124,11 @@ void usart_tx(){
 
 int wrapper_sample_data(int &index) {
 	
-  	current_time = millis();
 	static int counter = 0;          // track number of calls
 	static int sample = 0; 
 	
+	current_time = millis();
+
 
 	if (counter == 0) {
     	counter = index; 	// Set counter to match the initial value of index
@@ -143,26 +145,28 @@ int wrapper_sample_data(int &index) {
 
 	}
 	
-	if (counter == 5){             // Check if 5 samples have been collected
-	
-	  int result = sample & 0b1110;
-      
-      if(result == 14){
-        result=1;
-      } else if (result == 0){
-        result=0;
-      }
-      else{
-        result= -1;
-      }
-      
-      counter = 0;                  // Reset counter for the next cycle
-      sample = 0;  
+		if (counter == 5){             // Check if 5 samples have been collected
+		
+		  
+          int result = sample & 0b1110;
+		  Serial.println("sampled five times");
+          Serial.println(result);
+		  if(result == 14){
+			result=1;
+		  } else if (result == 0){
+			result=0;
+		  }
+		  else{
+			result= 2;
+		  }
+		  
+		  counter = 0;                  // Reset counter for the next cycle
+		  sample = 0;  
 
-      Rx_ref_time = millis(); // Reset timing
-      return result;                
-	
-	}
+		  Rx_ref_time = millis(); // Reset timing
+		  return result;                
+		
+		}
 	
 	Rx_ref_time = millis(); // Reset timing
 	return -1;
@@ -170,7 +174,7 @@ int wrapper_sample_data(int &index) {
 }
 
 
-void usart_rx(){//didnt look here yet
+void usart_rx(){
 	
 	static int counter_rx = 0;
 	static int data_parity_bit = 0;	
@@ -273,11 +277,28 @@ void usart_rx(){//didnt look here yet
 		
 
 	
+void test_rx(){
+	
+	static int test_bit=0;
+	test_bit =wrapper_sample_data(index = 0);
+	
+  	//Serial.print("samplingthedatadata");
+	Serial.flush();
+	if (test_bit != -1){
+		
+	    Serial.println(" ");
+        Serial.print("recievied bit ");
+	    Serial.println(test_bit);
 
+	}
+	
+}
 
 void loop() {
 	
-	usart_rx();
+	
+	test_rx();
+	//usart_rx();
    	usart_tx();
  
   
