@@ -84,6 +84,10 @@ void usart_tx(){
 		  if (counter_tx < 8) { 
 			  int current_bit = bitRead(data , counter_tx);
 			  digitalWrite(Tx_Data_Line, current_bit);
+              
+              //Serial.print("sent ");
+              //Serial.println(current_bit);
+
 			  parity_bit ^= current_bit;                 // Calculate parity using XOR
 			  counter_tx++;
 			  Tx_ref_time = millis();
@@ -98,7 +102,11 @@ void usart_tx(){
 		  
 		  case(PARITY):		  
 		  digitalWrite(Tx_Data_Line, parity_bit ^ 1);
-		  state_tx = STOP;
+          
+          //Serial.print("sent parity ");
+          //Serial.println(parity_bit);
+		  
+          state_tx = STOP;
 		  Tx_ref_time = millis();
 		  break;
 		
@@ -118,16 +126,20 @@ void usart_tx(){
 
 int wrapper_sample_data(int &index) {
 	
+  	current_time = millis();
 	static int counter = 0;          // track number of calls
 	static int sample = 0; 
 	
+
 	if (counter == 0) {
     	counter = index; 	// Set counter to match the initial value of index
 	}
 	
-	current_time = millis();
-	if(current_time- Rx_ref_time >= delta_time){
-		
+  	
+
+	if(current_time - Rx_ref_time >= delta_time){
+	    
+
 		int bit = digitalRead(Rx_Data_Line);
 		sample = (sample << 1) | bit;  // Shift left and add the new bit// could cause problems with real arduino
       	counter++;
@@ -151,7 +163,6 @@ int wrapper_sample_data(int &index) {
       sample = 0;  
 
       Rx_ref_time = millis(); // Reset timing
-
       return result;                
 	
 	}
@@ -162,7 +173,7 @@ int wrapper_sample_data(int &index) {
 }
 
 
-void usart_rx(){
+void usart_rx(){//didnt look here yet
 	
 	static int counter_rx = 0;
 	static int data_parity_bit = 0;	
@@ -180,8 +191,9 @@ void usart_rx(){
 
     case START:
 	  // Sample 4 times
-	  result_data = wrapper_sample_data(index=1);
+      Serial.println("Start");
 
+      result_data = wrapper_sample_data(index=1);
       if (result_data == 0) {
         state_rx = DATA;
       }
@@ -189,7 +201,7 @@ void usart_rx(){
 
     
 	case DATA:
-	
+	  Serial.print("DATA ");
 	  result_data = wrapper_sample_data(index=0);
 
         if (result_data != -1) {
@@ -199,7 +211,7 @@ void usart_rx(){
           	Serial.println("rec");
 		    Serial.println(rec_bit);
 
-            rx_data |= (rec_bit >> counter_rx);
+          	rx_data |= (rec_bit >> counter_rx);
             counter_rx++;
             if (counter_rx == 7) {
                 state_rx = PARITY;
@@ -210,33 +222,49 @@ void usart_rx(){
 
     
 	case PARITY:
+      	 
+      	Serial.print("PATITY ");
+
         result_data = wrapper_sample_data(index=0);
         if (result_data != -1) {
-            
             rx_parity_bit = result_data;
             state_rx = STOP;
+
         
         }
+
         break;
 
     case STOP:
+
         result_data = wrapper_sample_data(index=0);
+        Serial.println("ending bit");
+        Serial.println(result_data);
+
         if (result_data != -1) {
             int end_bit = result_data;
             if (end_bit == 1) {
                 
 				if (rx_parity_bit == data_parity_bit){
 				
+                  	Serial.println("Success");
 					Serial.println((char)rx_data);
+
 				}
 				
 				Serial.println("END");
-				state_rx = IDLE;
-                rx_data = 0; 
-                rx_parity_bit = 0;
-                data_parity_bit = 0;
+              	Serial.flush();
+
+				
 
             }
+          
+          Serial.println("ENDING");
+
+          state_rx = IDLE;
+          rx_data = 0; 
+          rx_parity_bit = 0;
+          data_parity_bit = 0;
         }
         break;
 
@@ -252,9 +280,7 @@ void usart_rx(){
 void loop() {
 	
 	usart_rx();
-    
-	Serial.println("sample");
-	usart_tx();
+   	usart_tx();
  
   
   
