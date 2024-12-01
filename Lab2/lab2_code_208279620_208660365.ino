@@ -18,10 +18,10 @@ long Rx_ref_time , Tx_ref_time;
 long random_wait_time;
 long delta_time;
 
-int samp_time = 3;
+int samp_num = 3;
 int rx_rec_data;
 
-char data = 'a';
+char data_char = 'a';
 
 int index=0;
 int state_rx = IDLE ;
@@ -33,14 +33,16 @@ int result_data;
 void setup()
 {
 	//open_serial_port
-	Serial.begin(9600); 
+	Serial.begin(19200); 
   
 	pinMode(Tx_Data_Line, OUTPUT); 
 	pinMode(Rx_Data_Line, INPUT); 
 	
 	///calculate delta_time depend on bit time
-	delta_time = BIT_wait_time / (samp_time + 2);
+	delta_time = BIT_wait_time / (samp_num + 2);
     
+	random_wait_time = random(1000,7000);
+
 	
 	Rx_ref_time = millis();
 	Tx_ref_time = millis();
@@ -76,23 +78,22 @@ void usart_tx(){
 		  parity_bit = 0;
 		  counter_tx = 0;
 		  digitalWrite(Tx_Data_Line, LOW);
+		  
 		  state_tx = DATA;
 		  Tx_ref_time = millis();
 		  break;
 
 		  case(DATA):
 		  if (counter_tx < 8) { 
-			  int current_bit = bitRead(data , counter_tx);
+		  
+			  int current_bit = bitRead(data_char , counter_tx);
 			  digitalWrite(Tx_Data_Line, current_bit);
-              
-              //Serial.print("sent ");
-              //Serial.println(current_bit);
-
 			  parity_bit ^= current_bit;                 // Calculate parity using XOR
 			  counter_tx++;
 			  Tx_ref_time = millis();
 
-		  }else {
+		  }
+		  else {
 		     state_tx = PARITY;
 			 Tx_ref_time = millis();
 
@@ -102,10 +103,6 @@ void usart_tx(){
 		  
 		  case(PARITY):		  
 		  digitalWrite(Tx_Data_Line, parity_bit ^ 1);
-          
-          //Serial.print("sent parity ");
-          //Serial.println(parity_bit);
-		  
           state_tx = STOP;
 		  Tx_ref_time = millis();
 		  break;
@@ -201,17 +198,18 @@ void usart_rx(){//didnt look here yet
 
     
 	case DATA:
-	  Serial.print("DATA ");
+	  
+	  //Serial.print("DATA ");
 	  result_data = wrapper_sample_data(index=0);
 
         if (result_data != -1) {
             int rec_bit = result_data;
 			data_parity_bit ^= rec_bit;                 // Calculate parity using XOR
 
-          	Serial.println("rec");
-		    Serial.println(rec_bit);
+          	//Serial.println("rec");
+		    //Serial.println(rec_bit);
 
-          	rx_data |= (rec_bit >> counter_rx);
+          	rx_data |= (rec_bit << counter_rx);
             counter_rx++;
             if (counter_rx == 7) {
                 state_rx = PARITY;
@@ -238,8 +236,8 @@ void usart_rx(){//didnt look here yet
     case STOP:
 
         result_data = wrapper_sample_data(index=0);
-        Serial.println("ending bit");
-        Serial.println(result_data);
+        //Serial.println("ending bit");
+        //Serial.println(result_data);
 
         if (result_data != -1) {
             int end_bit = result_data;
@@ -247,19 +245,19 @@ void usart_rx(){//didnt look here yet
                 
 				if (rx_parity_bit == data_parity_bit){
 				
-                  	Serial.println("Success");
-					Serial.println((char)rx_data);
+                  	//Serial.println("Success");
+					//Serial.println((char)rx_data);
 
 				}
 				
-				Serial.println("END");
-              	Serial.flush();
+				//Serial.println("END");
+              	//Serial.flush();
 
 				
 
             }
           
-          Serial.println("ENDING");
+          //Serial.println("ENDING");
 
           state_rx = IDLE;
           rx_data = 0; 
