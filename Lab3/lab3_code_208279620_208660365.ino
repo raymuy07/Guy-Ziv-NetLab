@@ -11,6 +11,9 @@
 #define PARITY 3
 #define STOP 4
 
+
+
+
 // Global variables for usart_rx
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
