@@ -3,8 +3,8 @@
 #define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
+#define HAM_TX_mask 0b1111		
 
-#define LAYER_MODE HAMMING
 
 // States
 #define IDLE 0
@@ -12,6 +12,8 @@
 #define DATA 2
 #define PARITY 3
 #define STOP 4
+#define HAMMING 0
+#define CRC 1
 
 
 
@@ -24,8 +26,9 @@ char rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
+int  LAYER_MODE =HAMMING;
 int data_length = 0;
-char string_data[15]= "Leiba & Zaidman";
+char string_data[16]= "Leiba & Zaidman";
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
@@ -224,7 +227,7 @@ void layer2_tx(){
 	   }
 }
 
-void layer2_tx(){
+void layer2_rx(){
 	
 	switch(LAYER_MODE){
 		
@@ -242,9 +245,45 @@ void layer2_tx(){
 
 
 void Hamming47_tx(){
+	int string_length = sizeof(string_data);
+	static int HAM_tx_counter=0;
+	static int IDLE_HAM_counter=0;
+	static int current_char=0;  
+  	static int current_4bits=0; 
+	if (tx_state==IDLE){
+		current_char = string_data[HAM_tx_counter];
+		if (IDLE_HAM_counter==0){
+			IDLE_HAM_counter=1;
+		}else{
+			current_char=current_char>>4;
+			HAM_tx_counter++;
+			IDLE_HAM_counter=0;
+		}
+		current_4bits = current_char&HAM_TX_mask;
+		tx_data= create_hamming_word(current_4bits);
+		
+		
+	}
 	
 	
-	
+}
+int create_hamming_word(int HAM_data){
+	int D1 = HAM_data&0b1;
+	int D2 = (HAM_data&0b10)>>1;
+	int D3 = (HAM_data&0b100)>>2;
+	int D4 = (HAM_data&0b1000)>>3;
+	int P1 = D1^D2^D4;
+	int P2 = D1^D3^D4;
+	int P3 = D2^D3^D4;
+	int word = 0;
+	bitWrite (word,0,P1);
+	bitWrite (word,1,P2);
+	bitWrite (word,2,D1);
+	bitWrite (word,3,P3);
+	bitWrite (word,4,D2);
+	bitWrite (word,5,D3);
+	bitWrite (word,6,D4);
+	return word;
 }
 
 void Hamming47_rx(){
