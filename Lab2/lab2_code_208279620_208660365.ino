@@ -1,78 +1,104 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 20000    // Bit duration in microseconds (1 second per bit)
-#define DELTA_TIME (BIT_WAIT_TIME / 5) // Sampling granularity
+#define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
+#define NUMBER_OF_SAMPLES 3      // Number of samples per bit
+#define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) // Sampling granularity
 
-// Receiver states
+// States
 #define IDLE 0
 #define START 1
 #define DATA 2
-#define STOP 3
+#define PARITY 3
+#define STOP 4
 
-// Global variables
-unsigned long rx_last_time = 0;  // Tracks last sampling time
-int rx_state = IDLE;             // Current state of the receiver
-int rx_bit_counter = 0;          // Counter for received data bits
-char rx_frame = 0;               // Stores the received frame
+// Global variables for Receiver
+unsigned long rx_last_time = 0;    // Tracks last sampling time
+int rx_state = IDLE;               // Current state of the receiver
+int rx_bit_counter = 0;            // Counter for received data bits
+char rx_frame = 0;                 // Stores the received frame
+int calculated_parity = 1;         // For parity calculation in receiver
 
-unsigned long tx_last_time = 0;  // Tracks last transmission time
-int tx_state = 0;                // Current state of the transmitter
-char tx_data = 0b01100001;       // Data to transmit (ASCII 'a')
-int tx_bit_counter = 0;          // Counter for transmitted bits
+// Global variables for Transmitter
+unsigned long tx_last_time = 0;    // Tracks last transmission time
+int tx_state = IDLE;               // Current state of the transmitter
+char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
+int tx_bit_counter = 0;            // Counter for transmitted bits
 unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+int parity_bit = 0;                // Parity bit for transmission
 
 void setup() {
   pinMode(TX_PIN, OUTPUT);
   pinMode(RX_PIN, INPUT);
-  digitalWrite(TX_PIN, HIGH);    // Set line HIGH (idle state)
+  digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
   Serial.begin(19200);
-  randomSeed(analogRead(0));     // Seed random generator
+  randomSeed(analogRead(0));       // Seed random generator
   Serial.println("Transceiver Ready");
 }
 
-// Transmitter function
+// Transmitter function with Odd Parity Calculation
 void transmit() {
   unsigned long current_time = micros();
 
   // Random wait time between frames
-  if (tx_state == 0 && current_time - tx_last_time >= random_wait_time) {
+  if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time) {
     tx_bit_counter = 0;
-    tx_state = 1;
+    tx_state = START;
     random_wait_time = random(1000000, 5000000); // Random delay: 1 to 5 seconds
-    //Serial.println("Transmitting...");
+
+    // Calculate odd parity
+    parity_bit = 1; // Start with 1 for odd parity
+    for (int i = 0; i < 8; i++) {
+      parity_bit ^= (tx_data >> i) & 1;
+    }
+    // Uncomment for debugging
+    // Serial.println("Transmitting...");
   }
 
   if (tx_state > 0 && current_time - tx_last_time >= BIT_WAIT_TIME) {
     switch (tx_state) {
-      case 1:
+      case START:
         digitalWrite(TX_PIN, LOW); // Start bit
-        //Serial.println("Start bit sent");
-        tx_state = 2;
+        // Uncomment for debugging
+        // Serial.println("Start bit sent");
+        tx_state = DATA;
         break;
 
-      case 2:
+      case DATA:
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
-        //Serial.print("Data bit sent: ");
-        //Serial.println((tx_data >> tx_bit_counter) & 1);
+        // Uncomment for debugging
+        // Serial.print("Data bit sent: ");
+        // Serial.println((tx_data >> tx_bit_counter) & 1);
         tx_bit_counter++;
-        if (tx_bit_counter >= 8) tx_state = 3;
+        if (tx_bit_counter >= 8) {
+          tx_state = PARITY;
+        }
         break;
 
-      case 3:
+      case PARITY:
+        digitalWrite(TX_PIN, parity_bit); // Send parity bit
+        // Uncomment for debugging
+        // Serial.print("Parity bit sent: ");
+        // Serial.println(parity_bit);
+        tx_state = STOP;
+        break;
+
+      case STOP:
         digitalWrite(TX_PIN, HIGH); // Stop bit
-        //Serial.println("Stop bit sent");
-        tx_state = 0; // Back to idle
+        // Uncomment for debugging
+        // Serial.println("Stop bit sent");
+        tx_state = IDLE; // Back to idle
         break;
     }
     tx_last_time = current_time;
   }
 }
 
-// Receiver function
+// Receiver function with Odd Parity Checking
 void receive() {
   unsigned long current_time = micros();
   static int sample_counter = 0;
   static int sampled_value = 0;
+  int bit = 0;
 
   if (rx_state == IDLE) {
     if (digitalRead(RX_PIN) == LOW) {  // Detect start bit
@@ -80,7 +106,11 @@ void receive() {
       rx_last_time = current_time;
       sample_counter = 0;
       sampled_value = 0;
-      //Serial.println("Start bit detected");
+      calculated_parity = 1; // Start with 1 for odd parity
+      rx_bit_counter = 0;
+      rx_frame = 0;
+      // Uncomment for debugging
+      // Serial.println("Start bit detected");
     }
   } else if (current_time - rx_last_time >= DELTA_TIME) {
     sample_counter++;
@@ -89,7 +119,7 @@ void receive() {
     if (sample_counter == 5) {  // Process after sampling 5 times
       int middle_bits = (sampled_value & 0b1110) >> 1; // Extract middle 3 bits
       int ones_count = (middle_bits & 1) + ((middle_bits >> 1) & 1) + ((middle_bits >> 2) & 1);
-      int bit = (ones_count >= 2) ? 1 : 0; // Majority voting
+      bit = (ones_count >= 2) ? 1 : 0; // Majority voting
 
       sample_counter = 0; // Reset for the next bit
       sampled_value = 0;
@@ -98,9 +128,8 @@ void receive() {
         case START:
           if (bit == 0) {  // Validate start bit
             rx_state = DATA;
-            rx_bit_counter = 0;
-            rx_frame = 0;
-        //    Serial.println("Valid start bit");
+            // Uncomment for debugging
+            // Serial.println("Valid start bit");
           } else {
             rx_state = IDLE;  // Reset on invalid start bit
             Serial.println("False start detected");
@@ -109,11 +138,21 @@ void receive() {
 
         case DATA:
           rx_frame |= (bit << rx_bit_counter); // Store received bit
+          calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
-          //Serial.print("Received Bit: ");
-          //Serial.println(bit);
-          if (rx_bit_counter == 8) {  // After 8 bits, move to STOP state
+          if (rx_bit_counter >= 8) {
+            rx_state = PARITY;
+          }
+          break;
+
+        case PARITY:
+          if (bit == calculated_parity) {
+            // Uncomment for debugging
+             Serial.println("Parity OK");
             rx_state = STOP;
+          } else {
+            Serial.println("Parity error detected");
+            rx_state = IDLE; // Reset on parity error
           }
           break;
 
@@ -138,4 +177,5 @@ void loop() {
   transmit();
   receive();
 }
+
 
