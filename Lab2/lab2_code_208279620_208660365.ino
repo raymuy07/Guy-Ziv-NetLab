@@ -2,7 +2,7 @@
 #define RX_PIN 4                 // Reception pin
 #define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
-#define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) // Sampling granularity
+#define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 
 // States
 #define IDLE 0
@@ -11,14 +11,15 @@
 #define PARITY 3
 #define STOP 4
 
-// Global variables for Receiver
+// Global variables for usart_rx
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
 char rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 
-// Global variables for Transmitter
+// Global variables for usart_tx
+
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
@@ -27,66 +28,68 @@ unsigned long random_wait_time = 1000000; // Initial random wait time in microse
 int parity_bit = 0;                // Parity bit for transmission
 
 void setup() {
+  
+  //setting up the input and output pins and also setting the output to 1.
+  
+  
   pinMode(TX_PIN, OUTPUT);
   pinMode(RX_PIN, INPUT);
   digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
   Serial.begin(19200);
-  randomSeed(analogRead(0));       // Seed random generator
-  Serial.println("Transceiver Ready");
+  randomSeed(analogRead(0));       // makes it truly random
+
+
 }
 
-// Transmitter function with Odd Parity Calculation
-void transmit() {
+void usart_tx() {
+	
   unsigned long current_time = micros();
 
   // Random wait time between frames
   if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time) {
-    tx_bit_counter = 0;
+    
+	tx_bit_counter = 0;
     tx_state = START;
     random_wait_time = random(1000000, 5000000); // Random delay: 1 to 5 seconds
 
-    // Calculate odd parity
-    parity_bit = 1; // Start with 1 for odd parity
-    for (int i = 0; i < 8; i++) {
-      parity_bit ^= (tx_data >> i) & 1;
-    }
-    // Uncomment for debugging
-    // Serial.println("Transmitting...");
+    
+    parity_bit = 1; 
+    
+	
   }
 
   if (tx_state > 0 && current_time - tx_last_time >= BIT_WAIT_TIME) {
     switch (tx_state) {
       case START:
         digitalWrite(TX_PIN, LOW); // Start bit
-        // Uncomment for debugging
-        // Serial.println("Start bit sent");
         tx_state = DATA;
         break;
 
       case DATA:
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
-        // Uncomment for debugging
-        // Serial.print("Data bit sent: ");
-        // Serial.println((tx_data >> tx_bit_counter) & 1);
+        
+		parity_bit ^= ((tx_data >> tx_bit_counter) & 1); //calculate parity_bit
         tx_bit_counter++;
         if (tx_bit_counter >= 8) {
+			
+		  //Serial.print("Parity ");
+	      //Serial.println(parity_bit);
+
           tx_state = PARITY;
         }
         break;
 
       case PARITY:
-        digitalWrite(TX_PIN, parity_bit); // Send parity bit
-        // Uncomment for debugging
+        digitalWrite(TX_PIN, parity_bit); // send parity bit
+        
         // Serial.print("Parity bit sent: ");
         // Serial.println(parity_bit);
         tx_state = STOP;
         break;
 
       case STOP:
-        digitalWrite(TX_PIN, HIGH); // Stop bit
-        // Uncomment for debugging
-        // Serial.println("Stop bit sent");
-        tx_state = IDLE; // Back to idle
+        digitalWrite(TX_PIN, HIGH); // send stop bit
+        tx_state = IDLE;
         break;
     }
     tx_last_time = current_time;
@@ -94,7 +97,7 @@ void transmit() {
 }
 
 // Receiver function with Odd Parity Checking
-void receive() {
+void usart_rx() {
   unsigned long current_time = micros();
   static int sample_counter = 0;
   static int sampled_value = 0;
@@ -174,8 +177,8 @@ void receive() {
 }
 
 void loop() {
-  transmit();
-  receive();
+  usart_tx();
+  usart_rx();
 }
 
 
