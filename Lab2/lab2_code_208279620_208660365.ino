@@ -96,7 +96,7 @@ void usart_tx() {
   }
 }
 
-// Receiver function with Odd Parity Checking
+
 void usart_rx() {
   unsigned long current_time = micros();
   static int sample_counter = 0;
@@ -104,43 +104,54 @@ void usart_rx() {
   int bit = 0;
 
   if (rx_state == IDLE) {
-    if (digitalRead(RX_PIN) == LOW) {  // Detect start bit
+    
+	if (digitalRead(RX_PIN) == LOW) {  // see if there is start bit
       rx_state = START;
       rx_last_time = current_time;
       sample_counter = 0;
       sampled_value = 0;
-      calculated_parity = 1; // Start with 1 for odd parity
+      calculated_parity = 1; // starting from 1 same as in tx
       rx_bit_counter = 0;
       rx_frame = 0;
-      // Uncomment for debugging
-      // Serial.println("Start bit detected");
+      
     }
   } else if (current_time - rx_last_time >= DELTA_TIME) {
+	  
     sample_counter++;
     sampled_value = (sampled_value << 1) | digitalRead(RX_PIN);
 
-    if (sample_counter == 5) {  // Process after sampling 5 times
-      int middle_bits = (sampled_value & 0b1110) >> 1; // Extract middle 3 bits
-      int ones_count = (middle_bits & 1) + ((middle_bits >> 1) & 1) + ((middle_bits >> 2) & 1);
-      bit = (ones_count >= 2) ? 1 : 0; // Majority voting
+    if (sample_counter == 5) {  // after sampling 5 times
+      
+	  int middle_bits = (sampled_value & 0b1110);
+      if (middle_bits == 0b0000){
+       bit = 0; 
+        
+      }else if (middle_bits == 0b1110){
+        bit = 1; 
 
+      }else {
+		  
+		rx_state = IDLE;  // reset due to false bit
+		Serial.println("bad bit detected");
+			
+	  }
       sample_counter = 0; // Reset for the next bit
       sampled_value = 0;
 
       switch (rx_state) {
+		  
         case START:
-          if (bit == 0) {  // Validate start bit
+          if (bit == 0) {  // start bit
             rx_state = DATA;
-            // Uncomment for debugging
-            // Serial.println("Valid start bit");
+            
           } else {
             rx_state = IDLE;  // Reset on invalid start bit
-            Serial.println("False start detected");
+            Serial.println("false start detected");
           }
           break;
 
         case DATA:
-          rx_frame |= (bit << rx_bit_counter); // Store received bit
+          rx_frame |= (bit << rx_bit_counter); // store the received bit
           calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
           if (rx_bit_counter >= 8) {
@@ -150,17 +161,17 @@ void usart_rx() {
 
         case PARITY:
           if (bit == calculated_parity) {
-            // Uncomment for debugging
-             Serial.println("Parity OK");
+            
+			Serial.println("Parity OK");
             rx_state = STOP;
           } else {
             Serial.println("Parity error detected");
-            rx_state = IDLE; // Reset on parity error
+            rx_state = IDLE; // reset on parity error
           }
           break;
 
         case STOP:
-          if (bit == 1) {  // Validate stop bit
+          if (bit == 1) {  // validate stop bit
             Serial.print("Received Frame: ");
             Serial.println(rx_frame, BIN);
             Serial.print("Received Character: ");
@@ -168,7 +179,7 @@ void usart_rx() {
           } else {
             Serial.println("Stop bit error detected");
           }
-          rx_state = IDLE;  // Reset after processing frame
+          rx_state = IDLE;  // reset after processing frame
           break;
       }
     }
@@ -177,8 +188,10 @@ void usart_rx() {
 }
 
 void loop() {
+	
   usart_tx();
   usart_rx();
+
 }
 
 
