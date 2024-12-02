@@ -3,6 +3,7 @@
 #define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
+#define mode HAMMING
 
 // States
 #define IDLE 0
@@ -19,7 +20,12 @@ char rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
-
+int data_length=0;
+if )mode == HAMMING){
+  data_length=7;	
+}else {
+  data_length=12;
+}						  //calc the right data_length
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
@@ -70,7 +76,7 @@ void uart_tx() {
         
 		parity_bit ^= ((tx_data >> tx_bit_counter) & 1); //calculate parity_bit
         tx_bit_counter++;
-        if (tx_bit_counter >= 8) {
+        if (tx_bit_counter >= data_length) {
 			
 		  //Serial.print("Parity ");
 	      //Serial.println(parity_bit);
@@ -187,9 +193,13 @@ void uart_rx() {
   }
 }
 
+void layer2_tx(){
+
+
 void loop() {
-	
+  layer2_tx();
   uart_tx();
+  layer2_rx();
   uart_rx();
 
 }
