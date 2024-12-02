@@ -261,7 +261,7 @@ void Hamming47_tx(){
 		}
 		current_4bits = current_char&HAM_TX_mask;
 		tx_data= create_hamming_word(current_4bits);
-		
+		tx_state = START;
 		
 	}
 	
