@@ -35,7 +35,7 @@ void setup() {
   pinMode(TX_PIN, OUTPUT);
   pinMode(RX_PIN, INPUT);
   digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
-  Serial.begin(19200);
+  Serial.begin(9600);
   randomSeed(analogRead(0));       // makes it truly random
 
 
@@ -162,7 +162,7 @@ void usart_rx() {
         case PARITY:
           if (bit == calculated_parity) {
             
-			Serial.println("Parity OK");
+			//Serial.println("Parity OK");
             rx_state = STOP;
           } else {
             Serial.println("Parity error detected");
@@ -193,5 +193,3 @@ void loop() {
   usart_rx();
 
 }
-
-
