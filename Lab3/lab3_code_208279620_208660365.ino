@@ -3,7 +3,8 @@
 #define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
-#define mode HAMMING
+
+#define LAYER_MODE HAMMING
 
 // States
 #define IDLE 0
@@ -24,11 +25,13 @@ int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
 int data_length=0;
-if )mode == HAMMING){
+if (LAYER_MODE == HAMMING){
   data_length=7;	
 }else {
   data_length=12;
 }						  //calc the right data_length
+
+
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
@@ -49,6 +52,11 @@ void setup() {
 
 
 }
+
+
+
+
+
 
 void uart_tx() {
 	
@@ -198,8 +206,22 @@ void uart_rx() {
 
 void layer2_tx(){
 
+switch(LAYER_MODE){
+	
+	case HAMMING:
+	Hamming47_tx();
+	break;
+	
+	case CRC:
+	CRC4_tx();
+	break;
+
+   }
+}
+
 
 void loop() {
+  
   layer2_tx();
   uart_tx();
   layer2_rx();
