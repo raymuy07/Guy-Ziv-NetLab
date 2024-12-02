@@ -24,12 +24,7 @@ char rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
-int data_length=0;
-if (LAYER_MODE == HAMMING){
-  data_length=7;	
-}else {
-  data_length=12;
-}						  //calc the right data_length
+int data_length = 0;
 
 
 unsigned long tx_last_time = 0;    // Tracks last transmission time
@@ -49,6 +44,16 @@ void setup() {
   digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
   Serial.begin(19200);
   randomSeed(analogRead(0));       // makes it truly random
+  
+  
+  if (LAYER_MODE == HAMMING){  //calc the right data_length
+  
+	data_length=7;	
+	
+	}else{
+	  data_length=12;
+	}						
+
 
 
 }
@@ -115,6 +120,7 @@ void uart_tx() {
 
 
 void uart_rx() {
+	
   unsigned long current_time = micros();
   static int sample_counter = 0;
   static int sampled_value = 0;
@@ -171,7 +177,7 @@ void uart_rx() {
           rx_frame |= (bit << rx_bit_counter); // store the received bit
           calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
-          if (rx_bit_counter >= 8) {
+          if (rx_bit_counter >= data_length) {
             rx_state = PARITY;
           }
           break;
@@ -206,18 +212,63 @@ void uart_rx() {
 
 void layer2_tx(){
 
-switch(LAYER_MODE){
-	
-	case HAMMING:
-	Hamming47_tx();
-	break;
-	
-	case CRC:
-	CRC4_tx();
-	break;
+	switch(LAYER_MODE){
+		
+		case HAMMING:
+		Hamming47_tx();
+		break;
+		
+		case CRC:
+		CRC4_tx();
+		break;
 
-   }
+	   }
 }
+
+void layer2_tx(){
+	
+	switch(LAYER_MODE){
+		
+		case HAMMING:
+		Hamming47_rx();
+		break;
+		
+		case CRC:
+		CRC4_rx();
+		break;
+
+	   }
+
+}
+
+
+void Hamming47_tx(){
+	
+	
+	
+}
+
+void Hamming47_rx(){
+	
+	
+	
+}
+
+void CRC4_rx(){
+	
+	
+	
+}
+
+
+void CRC4_tx(){
+	
+	
+	
+}
+
+
+
 
 
 void loop() {
@@ -229,7 +280,3 @@ void loop() {
 
 }
 
-
-//testing, attention please
-
-//more tes
