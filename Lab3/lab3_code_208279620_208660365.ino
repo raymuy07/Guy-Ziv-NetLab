@@ -25,8 +25,7 @@ int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
 int data_length = 0;
-
-
+char string_data[15]= "Leiba & Zaidman";
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
