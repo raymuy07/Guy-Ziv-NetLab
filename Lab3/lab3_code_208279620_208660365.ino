@@ -26,9 +26,13 @@ int calculated_parity = 1;         // For parity calculation in receiver
 // Global variables for usart_tx
 int data_length = 0;
 char string_data[15]= "Leiba & Zaidman";
+
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
+
 char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
+
+
 int tx_bit_counter = 0;            // Counter for transmitted bits
 unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
 int parity_bit = 0;                // Parity bit for transmission
@@ -262,7 +266,23 @@ void CRC4_rx(){
 
 void CRC4_tx(){
 	
+	static int crc_counter = 0;
 	
+	if (tx_state == IDLE){
+		
+		tx_data = string_data[crc_counter];
+
+		if (crc_counter < sizeof(tx_data)){
+			
+			crc_counter++;
+		}
+		
+		else{
+			crc_counter = 0;
+		
+			}
+	}else{
+		return;
 	
 }
 
