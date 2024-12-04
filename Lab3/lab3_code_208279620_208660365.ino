@@ -4,7 +4,9 @@
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 
-#define LAYER_MODE HAMMING
+#define CRC_TX_mask 0b1011        
+#define HAMMING 0
+#define CRC 1
 
 // States
 #define IDLE 0
@@ -15,8 +17,13 @@
 
 
 
+///need to arrange all of this:
+
+int crc_divisor_len = 4;
 
 // Global variables for usart_rx
+int  LAYER_MODE = CRC;
+
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -25,16 +32,15 @@ int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
 int data_length = 0;
-char string_data[15]= "Leiba & Zaidman";
+char string_data[16]= "Leiba & Zaidman";
 
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
-
-char tx_data = 0b01100001;         // Data to transmit (ASCII 'a')
+char tx_data;
 
 
 int tx_bit_counter = 0;            // Counter for transmitted bits
-unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+unsigned long random_wait_time = 10000000; // Initial random wait time in microseconds
 int parity_bit = 0;                // Parity bit for transmission
 
 void setup() {
@@ -228,7 +234,7 @@ void layer2_tx(){
 	   }
 }
 
-void layer2_tx(){
+void layer2_rx(){
 	
 	switch(LAYER_MODE){
 		
@@ -267,12 +273,54 @@ void CRC4_rx(){
 void CRC4_tx(){
 	
 	static int crc_counter = 0;
+	static int crc_word;
 	
-	if (tx_state == IDLE){
+  	static int divisor = CRC_TX_mask;  // Binary representation of divisor
+    static int dividend; // Dividend is the shifted word
+    
+    static int dividend_len = 12;
+	static int i = dividend_len - crc_divisor_len;
+	
+  	if (tx_state == IDLE){
+      
+      if (i == dividend_len - crc_divisor_len){
 		
-		tx_data = string_data[crc_counter];
+        crc_word = string_data[crc_counter];
+        		Serial.println(crc_word,BIN);
 
-		if (crc_counter < sizeof(tx_data)){
+		dividend = crc_word <<4 ; //add 4 bits
+	
+      }
+      
+      
+      if (i >=0){
+      	
+        if (dividend & (1 << (i + crc_divisor_len - 1))) {
+          // XOR the divisor with the dividend
+          dividend ^= (divisor << i);
+        } 
+       	i--;  
+      
+      }else if ( i < 0){
+        
+        i = dividend_len - crc_divisor_len;	
+        //tx_state = START;
+          
+        Serial.println("crc");
+		Serial.println(crc_word,BIN);
+        
+        Serial.println("dividend");
+        Serial.println(dividend, BIN);
+        		delay(1000);
+
+        //tx_data = dividend
+        
+        
+        
+       
+      }
+		
+      if (crc_counter < sizeof(string_data)){
 			
 			crc_counter++;
 		}
@@ -285,7 +333,7 @@ void CRC4_tx(){
 		return;
 	
 }
-
+}
 
 
 
