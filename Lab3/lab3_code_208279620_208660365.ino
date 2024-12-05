@@ -4,7 +4,9 @@
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 
-#define CRC_TX_mask 0b1011        
+#define CRC_TX_mask 0b10011        
+#define DIVISOR_LENGTH 5    //these two comes together
+
 #define HAMMING 0
 #define CRC 1
 
@@ -18,8 +20,6 @@
 
 
 ///need to arrange all of this:
-
-int crc_divisor_len = 4;
 
 // Global variables for usart_rx
 int  LAYER_MODE = CRC;
@@ -272,70 +272,51 @@ void CRC4_rx(){
 
 void CRC4_tx(){
 	
-	static int crc_counter = 0;
-	static int crc_word;
-	
-  	static int divisor = CRC_TX_mask;  // Binary representation of divisor
-    static int dividend; // Dividend is the shifted word
+	static int crc_counter = 0;    
     
-    static int dividend_len = 12;
-	static int i = dividend_len - crc_divisor_len;
+	static uint8_t crc_word;         
+	static uint16_t dividend;
+	
+    static const int dividend_len = 12;  
 	
   	if (tx_state == IDLE){
-      
-      if (i == dividend_len - crc_divisor_len){
 		
-        crc_word = string_data[crc_counter];
-        		Serial.println(crc_word,BIN);
+		crc_word = string_data[crc_counter];
+		dividend = crc_word <<4; 
+		uint16_t remainder = dividend; // start with the full dividend
+        
+        
+		Serial.print("Initial dividend: ");
+		Serial.println(dividend, BIN);
+		
+		for (int i = 12 - DIVISOR_LENGTH; i >= 0; i--) {
+			if (remainder & (1 << (i + DIVISOR_LENGTH - 1))) { // Check MSB
+				remainder ^= (CRC_TX_mask << i); // XOR with aligned divisor
+			}
+    }
+		
+	   
+	  
+	    uint16_t transmitted_value = (dividend | remainder); // Combine data and CRC
+	    tx_state = START;
 
-		dividend = crc_word <<4 ; //add 4 bits
 	
-      }
-      
-      
-      if (i >=0){
-      	
-        if (dividend & (1 << (i + crc_divisor_len - 1))) {
-          // XOR the divisor with the dividend
-          dividend ^= (divisor << i);
-        } 
-       	i--;  
-      
-      }else if ( i < 0){
-        
-        i = dividend_len - crc_divisor_len;	
-        //tx_state = START;
-          
-        Serial.println("crc");
-		Serial.println(crc_word,BIN);
-        
-        Serial.println("dividend");
-        Serial.println(dividend, BIN);
-        		delay(1000);
-
-        //tx_data = dividend
-        
-        
-        
-       
-      }
-		
-      if (crc_counter < sizeof(string_data)){
-			
+	
+		if (crc_counter < sizeof(string_data)){
+				
 			crc_counter++;
+		
+		}else{
+			crc_counter = 0;
 		}
 		
-		else{
-			crc_counter = 0;
-		
-			}
 	}else{
 		return;
-	
-}
-}
+      
+	}
 
 
+}
 
 
 void loop() {
