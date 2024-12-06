@@ -36,7 +36,8 @@ char string_data[16]= "Leiba & Zaidman";
 
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
-char tx_data;
+
+uint16_t tx_data;
 
 
 int tx_bit_counter = 0;            // Counter for transmitted bits
@@ -265,7 +266,17 @@ void Hamming47_rx(){
 
 void CRC4_rx(){
 	
-	
+  if (rx_state == STOP){
+    
+    Serial.println("crc_rx");
+    Serial.println(rx_frame,BIN);
+
+    
+    
+  }else{
+    
+   return; 
+  }
 	
 }
 
@@ -284,37 +295,32 @@ void CRC4_tx(){
 		crc_word = string_data[crc_counter];
 		dividend = crc_word <<4; 
 		uint16_t remainder = dividend; // start with the full dividend
-        
-        
-		Serial.print("Initial dividend: ");
-		Serial.println(dividend, BIN);
-		
+
 		for (int i = 12 - DIVISOR_LENGTH; i >= 0; i--) {
 			if (remainder & (1 << (i + DIVISOR_LENGTH - 1))) { // Check MSB
 				remainder ^= (CRC_TX_mask << i); // XOR with aligned divisor
 			}
     }
 		
-	   
-	  
-	    uint16_t transmitted_value = (dividend | remainder); // Combine data and CRC
-	    tx_state = START;
+	  tx_data = (dividend | remainder); // Combine data and CRC
+	  tx_state = START;
 
 	
 	
 		if (crc_counter < sizeof(string_data)){
 				
-			crc_counter++;
-		
-		}else{
-			crc_counter = 0;
-		}
-		
+				crc_counter++;
+			}
+			
+			else{
+				crc_counter = 0;
+			
+				}
 	}else{
+      
 		return;
       
 	}
-
 
 }
 
@@ -325,6 +331,8 @@ void loop() {
   uart_tx();
   layer2_rx();
   uart_rx();
+  
+  
 
 }
 
