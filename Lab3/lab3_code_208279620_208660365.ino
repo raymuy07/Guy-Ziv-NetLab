@@ -1,6 +1,6 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
+#define BIT_WAIT_TIME 200000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 #define HAM_TX_mask 0b1111		
@@ -190,7 +190,7 @@ void uart_rx() {
 			Serial.println("Parity OK");
             rx_state = STOP;
           } else {
-            Serial.println("Parity error detected");
+           // Serial.println("Parity error detected");
             rx_state = IDLE; // reset on parity error
           }
           break;
@@ -252,10 +252,15 @@ void Hamming47_tx(){
   	static int current_4bits=0; 
 	if (tx_state==IDLE){
 		current_char = string_data[HAM_tx_counter];
-		if (IDLE_HAM_counter==0){
+      	//Serial.print(" HAM_tx_Counter ");
+  		//Serial.print(HAM_tx_counter);
+		int MSB_char=current_char>>4;
+      	int LSB_char=current_char;
+      	if (IDLE_HAM_counter==0){
 			IDLE_HAM_counter=1;
+          	current_char=MSB_char;
 		}else{
-			current_char=current_char>>4;
+			current_char=LSB_char;
 			HAM_tx_counter++;
 			IDLE_HAM_counter=0;
 		}
@@ -268,6 +273,8 @@ void Hamming47_tx(){
 	
 }
 int create_hamming_word(int HAM_data){
+	Serial.print(" HAM_data: ");
+	Serial.print(HAM_data,BIN);
 	int D1 = HAM_data&0b1;
 	int D2 = (HAM_data&0b10)>>1;
 	int D3 = (HAM_data&0b100)>>2;
@@ -275,6 +282,12 @@ int create_hamming_word(int HAM_data){
 	int P1 = D1^D2^D4;
 	int P2 = D1^D3^D4;
 	int P3 = D2^D3^D4;
+	Serial.print(" P1: ");
+  	Serial.print(P1);
+	Serial.print(" P2: ");
+  	Serial.print(P2);
+	Serial.print(" P3: ");
+  	Serial.print(P3);
 	int word = 0;
 	bitWrite (word,0,P1);
 	bitWrite (word,1,P2);
@@ -283,6 +296,8 @@ int create_hamming_word(int HAM_data){
 	bitWrite (word,4,D2);
 	bitWrite (word,5,D3);
 	bitWrite (word,6,D4);
+	Serial.println(" word: ");
+  	Serial.println(word,BIN);
 	return word;
 }
 
