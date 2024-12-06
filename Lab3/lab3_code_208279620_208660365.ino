@@ -27,11 +27,11 @@ int  LAYER_MODE = CRC;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
-char rx_frame = 0;                 // Stores the received frame
+uint16_t rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 
 // Global variables for usart_tx
-int data_length = 0;
+int data_length;
 char string_data[16]= "Leiba & Zaidman";
 
 unsigned long tx_last_time = 0;    // Tracks last transmission time
@@ -98,16 +98,16 @@ void uart_tx() {
         break;
 
       case DATA:
+	 
+		 
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
         
 		parity_bit ^= ((tx_data >> tx_bit_counter) & 1); //calculate parity_bit
         tx_bit_counter++;
         if (tx_bit_counter >= data_length) {
 			
-		  //Serial.print("Parity ");
-	      //Serial.println(parity_bit);
-
           tx_state = PARITY;
+          
         }
         break;
 
@@ -188,6 +188,7 @@ void uart_rx() {
           calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
           if (rx_bit_counter >= data_length) {
+           
             rx_state = PARITY;
           }
           break;
@@ -195,9 +196,13 @@ void uart_rx() {
         case PARITY:
           if (bit == calculated_parity) {
             
+            			Serial.println(calculated_parity);
+
 			Serial.println("Parity OK");
             rx_state = STOP;
           } else {
+                        			Serial.println(calculated_parity);
+
             Serial.println("Parity error detected");
             rx_state = IDLE; // reset on parity error
           }
@@ -205,6 +210,7 @@ void uart_rx() {
 
         case STOP:
           if (bit == 1) {  // validate stop bit
+            
             Serial.print("Received Frame: ");
             Serial.println(rx_frame, BIN);
             Serial.print("Received Character: ");
@@ -266,7 +272,7 @@ void Hamming47_rx(){
 
 void CRC4_rx(){
 	
-  if (rx_state == STOP){
+  if ((rx_state == IDLE)&&(rx_frame!=0)){
     
     Serial.println("crc_rx");
     Serial.println(rx_frame,BIN);
@@ -304,6 +310,9 @@ void CRC4_tx(){
 		
 	  tx_data = (dividend | remainder); // Combine data and CRC
 	  tx_state = START;
+		Serial.println("the transmit");
+		Serial.println(tx_data,BIN);
+		delay(2000);
 
 	
 	
