@@ -1,6 +1,6 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 200000      // Bit duration in microseconds (50 bps)
+#define BIT_WAIT_TIME 100000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 #define HAM_TX_mask 0b1111		
@@ -252,7 +252,7 @@ void Hamming47_tx(){
   	static int current_4bits=0; 
 	if (tx_state==IDLE){
 		current_char = string_data[HAM_tx_counter];
-      	//Serial.print(" HAM_tx_Counter ");
+      	//Serial.print(" HAM_tx_counter ");
   		//Serial.print(HAM_tx_counter);
 		int MSB_char=current_char>>4;
       	int LSB_char=current_char;
@@ -267,6 +267,11 @@ void Hamming47_tx(){
 		current_4bits = current_char&HAM_TX_mask;
 		tx_data= create_hamming_word(current_4bits);
 		tx_state = START;
+      	Serial.println(" HAM_tx_counter: ");
+  		Serial.println(HAM_tx_counter);
+		if (HAM_tx_counter==string_length){
+			HAM_tx_counter=0;
+		}
 		
 	}
 	
@@ -302,7 +307,7 @@ int create_hamming_word(int HAM_data){
 }
 
 void Hamming47_rx(){
-	
+	int coded_word=rx_frame;
 	
 	
 }
