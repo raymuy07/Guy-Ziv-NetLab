@@ -41,8 +41,8 @@ uint16_t tx_data;
 
 
 int tx_bit_counter = 0;            // Counter for transmitted bits
-unsigned long random_wait_time = 10000000; // Initial random wait time in microseconds
-int parity_bit = 0;                // Parity bit for transmission
+unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+int parity_bit;                // Parity bit for transmission
 
 void setup() {
   
@@ -76,23 +76,13 @@ void setup() {
 void uart_tx() {
 	
   unsigned long current_time = micros();
-
-  // Random wait time between frames
-  if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time) {
-    
-	tx_bit_counter = 0;
-    tx_state = START;
-    random_wait_time = random(1000000, 5000000); // Random delay: 1 to 5 seconds
-
-    
-    parity_bit = 1; 
-    
-	
-  }
-
+ 
   if (tx_state > 0 && current_time - tx_last_time >= BIT_WAIT_TIME) {
     switch (tx_state) {
-      case START:
+      
+	  case START:  
+		parity_bit = 1; 
+		tx_bit_counter = 0;
         digitalWrite(TX_PIN, LOW); // Start bit
         tx_state = DATA;
         break;
@@ -187,7 +177,8 @@ void uart_rx() {
           rx_frame |= (bit << rx_bit_counter); // store the received bit
           calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
-          if (rx_bit_counter >= data_length) {
+          
+		  if (rx_bit_counter >= data_length) {
            
             rx_state = PARITY;
           }
@@ -196,12 +187,11 @@ void uart_rx() {
         case PARITY:
           if (bit == calculated_parity) {
             
-            			Serial.println(calculated_parity);
+            Serial.println(calculated_parity);
 
 			Serial.println("Parity OK");
             rx_state = STOP;
           } else {
-                        			Serial.println(calculated_parity);
 
             Serial.println("Parity error detected");
             rx_state = IDLE; // reset on parity error
@@ -213,8 +203,6 @@ void uart_rx() {
             
             Serial.print("Received Frame: ");
             Serial.println(rx_frame, BIN);
-            Serial.print("Received Character: ");
-            Serial.println((char)rx_frame);
           } else {
             Serial.println("Stop bit error detected");
           }
@@ -271,14 +259,32 @@ void Hamming47_rx(){
 }
 
 void CRC4_rx(){
+
 	
   if ((rx_state == IDLE)&&(rx_frame!=0)){
     
-    Serial.println("crc_rx");
-    Serial.println(rx_frame,BIN);
+    // Separate the data and CRC
+	uint8_t received_data = (rx_frame >> 4) & 0xFF; // First 8 bits are data
+	uint8_t received_crc = rx_frame & 0xF;          // Last 4 bits are CRC
 
-    
-    
+	// Recalculate CRC on the received data
+	uint16_t dividend = received_data << 4; // Append 4 zero bits
+	uint16_t remainder = dividend;
+
+	for (int i = 12 - DIVISOR_LENGTH; i >= 0; i--) {
+		if (remainder & (1 << (i + DIVISOR_LENGTH - 1))) { // Check MSB
+			remainder ^= (CRC_TX_mask << i); // XOR with aligned divisor
+		}
+	}
+
+    uint8_t calculated_crc = remainder & 0xF; // Extract the last 4 bits
+    	
+	if (calculated_crc == received_crc) {
+            Serial.println("CRC Valid");
+        } else {
+            Serial.println("CRC Error");
+        }
+		
   }else{
     
    return; 
@@ -289,6 +295,8 @@ void CRC4_rx(){
 
 void CRC4_tx(){
 	
+	unsigned long current_time = micros(); //for the randomtime between frame to frame
+
 	static int crc_counter = 0;    
     
 	static uint8_t crc_word;         
@@ -296,7 +304,7 @@ void CRC4_tx(){
 	
     static const int dividend_len = 12;  
 	
-  	if (tx_state == IDLE){
+  	if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time){
 		
 		crc_word = string_data[crc_counter];
 		dividend = crc_word <<4; 
@@ -310,15 +318,17 @@ void CRC4_tx(){
 		
 	  tx_data = (dividend | remainder); // Combine data and CRC
 	  tx_state = START;
+		
 		Serial.println("the transmit");
 		Serial.println(tx_data,BIN);
-		delay(2000);
 
 	
 	
 		if (crc_counter < sizeof(string_data)){
 				
 				crc_counter++;
+				random_wait_time = random(1000000, 3000000); // Random delay: 1 to 5 seconds
+
 			}
 			
 			else{
