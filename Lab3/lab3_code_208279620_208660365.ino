@@ -259,8 +259,8 @@ void Hamming47_rx(){
 }
 
 void CRC4_rx(){
-
 	
+  
   if ((rx_state == IDLE)&&(rx_frame!=0)){
     
     // Separate the data and CRC
@@ -281,7 +281,10 @@ void CRC4_rx(){
     	
 	if (calculated_crc == received_crc) {
             Serial.println("CRC Valid");
+      		rx_frame = 0;
+      		Serial.println(char(received_data));
         } else {
+      		rx_frame = 0;
             Serial.println("CRC Error");
         }
 		
@@ -306,7 +309,7 @@ void CRC4_tx(){
 	
   	if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time){
 		
-		crc_word = string_data[crc_counter];
+      	crc_word = string_data[crc_counter];
 		dividend = crc_word <<4; 
 		uint16_t remainder = dividend; // start with the full dividend
 
@@ -327,7 +330,7 @@ void CRC4_tx(){
 		if (crc_counter < sizeof(string_data)){
 				
 				crc_counter++;
-				random_wait_time = random(1000000, 3000000); // Random delay: 1 to 5 seconds
+				random_wait_time = random(2000000, 4000000); // Random delay: 1 to 5 seconds
 
 			}
 			
@@ -345,6 +348,7 @@ void CRC4_tx(){
 
 
 void loop() {
+  
   
   layer2_tx();
   uart_tx();
