@@ -4,6 +4,9 @@
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 #define HAM_TX_mask 0b1111		
+#define CRC_TX_mask 0b10011        
+#define DIVISOR_LENGTH 5    //these two comes together
+
 
 
 // States
@@ -17,30 +20,33 @@
 
 
 
+///need to arrange all of this:
 
 // Global variables for usart_rx
+int  LAYER_MODE = CRC;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
-char rx_frame = 0;                 // Stores the received frame
+uint16_t rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
 int rx_done_flag = 0;			   // For hamming_rx, letting it know to start
 
-// Global variables for usart_tx
-int  LAYER_MODE =HAMMING;
-int data_length = 0;
-char string_data[16]= "Leiba & Zaidman";
-unsigned long tx_last_time = 0;    // Tracks last transmission time
-int tx_state = IDLE;               // Current state of the transmitter
-char tx_data = 0;                  // Data to transmit (ASCII 'a')
-int tx_bit_counter = 0;            // Counter for transmitted bits
-unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
-int parity_bit = 1;                // Parity bit for transmission
+
 //Global variables for layer2_rx
 int MLB_flag = 1;
 int decripted_word=0;
 char rx_data_string[16] = "";
-//Global variables for layer2_tx
+int data_length;
+char string_data[16]= "Leiba & Zaidman";
+
+
+// Global variables for usart_tx
+unsigned long tx_last_time = 0;    // Tracks last transmission time
+int tx_state = IDLE;               // Current state of the transmitter
+uint16_t tx_data;
+int tx_bit_counter = 0;            // Counter for transmitted bits
+unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+int parity_bit = 1;                // Parity bit for transmission
 
 
 void setup() {
@@ -75,28 +81,20 @@ void setup() {
 void uart_tx() {
 	
   unsigned long current_time = micros();
-
-  // Random wait time between frames
-  if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time) {
-    
-	tx_bit_counter = 0;
-    tx_state = START;
-    random_wait_time = random(1000000, 5000000); // Random delay: 1 to 5 seconds
-
-    
-    parity_bit = 1; 
-    
-	
-  }
-
+ 
   if (tx_state > 0 && current_time - tx_last_time >= BIT_WAIT_TIME) {
     switch (tx_state) {
-      case START:
+      
+	  case START:  
+		parity_bit = 1; 
+		tx_bit_counter = 0;
         digitalWrite(TX_PIN, LOW); // Start bit
         tx_state = DATA;
         break;
 
       case DATA:
+	 
+		 
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
       	//Serial.print(" starting Parity bit: ");
 	    //Serial.println(parity_bit);
@@ -110,11 +108,7 @@ void uart_tx() {
         tx_bit_counter++;
       	
         if (tx_bit_counter >= data_length) {
-			
-		  //Serial.print("Parity ");
-	      //Serial.println(parity_bit);
-		  tx_bit_counter =0;
-          tx_state = PARITY;
+          tx_state = PARITY; 
         }
         break;
 
@@ -194,7 +188,9 @@ void uart_rx() {
           rx_frame |= (bit << rx_bit_counter); // store the received bit
           calculated_parity ^= bit; // Update calculated parity
           rx_bit_counter++;
-          if (rx_bit_counter >= data_length) {
+          
+		  if (rx_bit_counter >= data_length) {
+           
             rx_state = PARITY;
             //Serial.println(" RX_frame: ");
             //Serial.println(rx_frame,BIN);
@@ -203,10 +199,9 @@ void uart_rx() {
 
         case PARITY:
           if (bit == calculated_parity) {
-            
-			//Serial.println("Parity OK");
             rx_state = STOP;
           } else {
+
             Serial.println("Parity error detected");
             Serial.println("Parity detected: ");
             Serial.println(bit);
@@ -218,10 +213,9 @@ void uart_rx() {
 
         case STOP:
           if (bit == 1) {  // validate stop bit
-            //Serial.print("Received Frame: ");
-            //Serial.println(rx_frame, BIN);
-            //Serial.print("Received Character: ");
-            //Serial.println((char)rx_frame);
+
+            Serial.print("Received Frame: ");
+            Serial.println(rx_frame, BIN);
           } else {
             Serial.println("Stop bit error detected");
           }
@@ -267,7 +261,8 @@ void layer2_rx(){
 
 
 void Hamming47_tx(){
-  	int current_time=micros();
+  	
+  int current_time=micros();
 	int string_length = sizeof(string_data);
 	static int HAM_tx_counter=0;
 	static int IDLE_HAM_counter=0;
@@ -303,7 +298,7 @@ void Hamming47_tx(){
 	
 	
 }
-int create_hamming_word(int HAM_data){
+int create_hamming_word(uint16_t HAM_data){
 	
 	int D1 = HAM_data&0b1;
 	int D2 = (HAM_data&0b10)>>1;
@@ -403,29 +398,101 @@ int hamming_eror_detection(int word){
 
 void CRC4_rx(){
 	
-	
+  
+  if ((rx_state == IDLE)&&(rx_frame!=0)){
+    
+    // Separate the data and CRC
+	uint8_t received_data = (rx_frame >> 4) & 0xFF; // First 8 bits are data
+	uint8_t received_crc = rx_frame & 0xF;          // Last 4 bits are CRC
+
+	// Recalculate CRC on the received data
+	uint16_t dividend = received_data << 4; // Append 4 zero bits
+	uint16_t remainder = dividend;
+
+	for (int i = 12 - DIVISOR_LENGTH; i >= 0; i--) {
+		if (remainder & (1 << (i + DIVISOR_LENGTH - 1))) { // Check MSB
+			remainder ^= (CRC_TX_mask << i); // XOR with aligned divisor
+		}
+	}
+
+    uint8_t calculated_crc = remainder & 0xF; // Extract the last 4 bits
+    	
+	if (calculated_crc == received_crc) {
+            Serial.println("CRC Valid");
+      		rx_frame = 0;
+      		Serial.println(char(received_data));
+        } else {
+      		rx_frame = 0;
+            Serial.println("CRC Error");
+        }
+		
+  }else{
+    
+   return; 
+  }
 	
 }
 
 
 void CRC4_tx(){
 	
+	unsigned long current_time = micros(); //for the randomtime between frame to frame
+
+	static int crc_counter = 0;    
+    
+	static uint8_t crc_word;         
+	static uint16_t dividend;
+	
+    static const int dividend_len = 12;  
+	
+  	if (tx_state == IDLE && current_time - tx_last_time >= random_wait_time){
+		
+      	crc_word = string_data[crc_counter];
+		dividend = crc_word <<4; 
+		uint16_t remainder = dividend; // start with the full dividend
+
+		for (int i = 12 - DIVISOR_LENGTH; i >= 0; i--) {
+			if (remainder & (1 << (i + DIVISOR_LENGTH - 1))) { // Check MSB
+				remainder ^= (CRC_TX_mask << i); // XOR with aligned divisor
+			}
+    }
+		
+	  tx_data = (dividend | remainder); // Combine data and CRC
+	  tx_state = START;
+		
+		Serial.println("the transmit");
+		Serial.println(tx_data,BIN);
+
 	
 	
+		if (crc_counter < sizeof(string_data)){
+				
+				crc_counter++;
+				random_wait_time = random(2000000, 4000000); // Random delay: 1 to 5 seconds
+
+			}
+			
+			else{
+				crc_counter = 0;
+			
+				}
+	}else{
+      
+		return;
+      
+	}
+
 }
 
 
-
-
-
 void loop() {
+  
   
   layer2_tx();
   uart_tx();
   uart_rx();
   layer2_rx();
-  
-  
+
   
 
 }
