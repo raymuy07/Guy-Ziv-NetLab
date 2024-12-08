@@ -38,7 +38,8 @@ int decripted_word=0;
 char rx_data_string[16] = "";
 int data_length;
 char string_data[16]= "Leiba & Zaidman";
-
+int string_length = sizeof(string_data);
+int rx_data_counter=0;
 
 // Global variables for usart_tx
 unsigned long tx_last_time = 0;    // Tracks last transmission time
@@ -102,8 +103,8 @@ void uart_tx() {
       	
         if (tx_bit_counter >= data_length) {
           tx_state = PARITY; 
-		  Serial.println("TX_data: ");
-          Serial.println(tx_data,BIN);
+		  //Serial.println("TX_data: ");
+          //Serial.println(tx_data,BIN);
         }
         break;
 
@@ -189,8 +190,8 @@ void uart_rx() {
 		  if (rx_bit_counter >= data_length) {
            
             rx_state = PARITY;
-            Serial.println("RX_frame: ");
-            Serial.println(rx_frame,BIN);
+            //Serial.println("RX_frame: ");
+            //Serial.println(rx_frame,BIN);
           }
           break;
 
@@ -252,7 +253,6 @@ void layer2_rx(){
 void Hamming47_tx(){
   	
   int current_time=micros();
-	int string_length = sizeof(string_data);
 	static int HAM_tx_counter=0;
 	static int IDLE_HAM_counter=0;
 	static int current_char=0;  
@@ -339,16 +339,20 @@ void Hamming47_rx(){
 		}
 		else {
 			MLB_flag=1;
-			Serial.println(" char detected, bin: ");
-			Serial.println(decripted_word,BIN);
-			Serial.println(" char detected: ");
-			Serial.println((char) decripted_word);
-			int len = strlen(rx_data_string);
-			rx_data_string[len] = decripted_word;
-			rx_data_string[len+1] = '\0'; // add null
-			Serial.println(" rx_data_string: ");
+			//Serial.println(" char detected, bin: ");
+			//Serial.println(decripted_word,BIN);
+			//Serial.println(" char detected: ");
+			//Serial.println((char) decripted_word);
+			//int len = string_length;
+			rx_data_string[rx_data_counter] = decripted_word;
+			rx_data_counter++;
+			rx_data_string[rx_data_counter] = '\0'; // add null
+			//Serial.println(" rx_data_string: ");
 			Serial.println(rx_data_string);
 			decripted_word=0;
+			if (rx_data_counter==data_length){
+				rx_data_counter=0;
+			}
 		}
 	}
 	else {
@@ -481,7 +485,7 @@ void loop() {
   layer2_tx();
   uart_tx();
   uart_rx();
-  //layer2_rx();
+  layer2_rx();
 
   
 
