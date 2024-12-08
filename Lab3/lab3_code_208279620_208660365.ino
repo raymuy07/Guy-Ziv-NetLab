@@ -1,14 +1,13 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
+#define BIT_WAIT_TIME 100000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
-
+#define HAM_TX_mask 0b1111		
 #define CRC_TX_mask 0b10011        
 #define DIVISOR_LENGTH 5    //these two comes together
 
-#define HAMMING 0
-#define CRC 1
+
 
 // States
 #define IDLE 0
@@ -16,6 +15,8 @@
 #define DATA 2
 #define PARITY 3
 #define STOP 4
+#define HAMMING 0
+#define CRC 1
 
 
 
@@ -23,26 +24,32 @@
 
 // Global variables for usart_rx
 int  LAYER_MODE = CRC;
-
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
 uint16_t rx_frame = 0;                 // Stores the received frame
 int calculated_parity = 1;         // For parity calculation in receiver
+int rx_done_flag = 0;			   // For hamming_rx, letting it know to start
 
-// Global variables for usart_tx
+
+//Global variables for layer2_rx
+int MLB_flag = 1;
+int decripted_word=0;
+char rx_data_string[16] = "";
 int data_length;
 char string_data[16]= "Leiba & Zaidman";
+int string_length = sizeof(string_data);
+int rx_data_counter=0;
+int rx_CRC_counter=0;
 
+// Global variables for usart_tx
 unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
-
 uint16_t tx_data;
-
-
 int tx_bit_counter = 0;            // Counter for transmitted bits
 unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
-int parity_bit;                // Parity bit for transmission
+int parity_bit = 1;                // Parity bit for transmission
+
 
 void setup() {
   
@@ -58,7 +65,7 @@ void setup() {
   
   if (LAYER_MODE == HAMMING){  //calc the right data_length
   
-	data_length=7;	
+	data_length=8;	
 	
 	}else{
 	  data_length=12;
@@ -91,22 +98,24 @@ void uart_tx() {
 	 
 		 
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
-        
+		
 		parity_bit ^= ((tx_data >> tx_bit_counter) & 1); //calculate parity_bit
-        tx_bit_counter++;
+		tx_bit_counter++;
+      	
         if (tx_bit_counter >= data_length) {
-			
-          tx_state = PARITY;
-          
+          tx_state = PARITY; 
+		  //Serial.println("TX_data: ");
+          //Serial.println(tx_data,BIN);
         }
         break;
 
       case PARITY:
         digitalWrite(TX_PIN, parity_bit); // send parity bit
         
-        // Serial.print("Parity bit sent: ");
-        // Serial.println(parity_bit);
-        tx_state = STOP;
+         /*Serial.print("Parity bit sent: ");
+         Serial.println(parity_bit);*/
+        
+		tx_state = STOP;
         break;
 
       case STOP:
@@ -129,7 +138,8 @@ void uart_rx() {
   if (rx_state == IDLE) {
     
 	if (digitalRead(RX_PIN) == LOW) {  // see if there is start bit
-      rx_state = START;
+      
+	  rx_state = START;
       rx_last_time = current_time;
       sample_counter = 0;
       sampled_value = 0;
@@ -181,32 +191,27 @@ void uart_rx() {
 		  if (rx_bit_counter >= data_length) {
            
             rx_state = PARITY;
+            //Serial.println("RX_frame: ");
+            //Serial.println(rx_frame,BIN);
           }
           break;
 
         case PARITY:
           if (bit == calculated_parity) {
-            
-            Serial.println(calculated_parity);
-
-			Serial.println("Parity OK");
             rx_state = STOP;
           } else {
-
-            Serial.println("Parity error detected");
-            rx_state = IDLE; // reset on parity error
+			  
+			rx_state = IDLE; // reset on parity error
           }
           break;
 
         case STOP:
-          if (bit == 1) {  // validate stop bit
+          if (bit != 1) {  // validate stop bit
             
-            Serial.print("Received Frame: ");
-            Serial.println(rx_frame, BIN);
-          } else {
-            Serial.println("Stop bit error detected");
+			Serial.println("Stop bit error detected");
           }
           rx_state = IDLE;  // reset after processing frame
+          rx_done_flag = 1;
           break;
       }
     }
@@ -247,16 +252,144 @@ void layer2_rx(){
 
 
 void Hamming47_tx(){
+  	
+  int current_time=micros();
+	static int HAM_tx_counter=0;
+	static int IDLE_HAM_counter=0;
+	static int current_char=0;  
+  	static int current_4bits=0; 
+	
+	
+	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){
+		
+		current_char = string_data[HAM_tx_counter];
+		int MSB_char=current_char>>4;
+      	int LSB_char=current_char;
+      	
+		if (IDLE_HAM_counter==0){
+			IDLE_HAM_counter=1;
+          	current_char=MSB_char;
+		
+		}else{
+			current_char=LSB_char;
+			HAM_tx_counter++;
+			IDLE_HAM_counter=0;
+		}
+		current_4bits = current_char&HAM_TX_mask;
+		tx_data= create_hamming_word(current_4bits);
+      	parity_bit=1;
+		tx_state = START;
+		random_wait_time = random(2000000, 4000000); // Random delay: 2 to 4 seconds
+		
+		if (HAM_tx_counter==string_length){
+			
+			HAM_tx_counter=0;
+		}
+	}
+	
+	
+}
+int create_hamming_word(uint16_t HAM_data){
+	
+	int D1 = HAM_data&0b1;
+	int D2 = (HAM_data&0b10)>>1;
+	int D3 = (HAM_data&0b100)>>2;
+	int D4 = (HAM_data&0b1000)>>3;
+	int P1 = D1^D2^D4;
+	int P2 = D1^D3^D4;
+	int P3 = D2^D3^D4;
+	int word = 0;
+	bitWrite (word,0,P1);
+	bitWrite (word,1,P2);
+	bitWrite (word,2,D1);
+	bitWrite (word,3,P3);
+	bitWrite (word,4,D2);
+	bitWrite (word,5,D3);
+	bitWrite (word,6,D4);
+	/*Serial.print(" HAM_data: ");
+	Serial.print(HAM_data,BIN);
+	Serial.print(" P1: ");
+  	Serial.print(P1);
+	Serial.print(" P2: ");
+  	Serial.print(P2);
+	Serial.print(" P3: ");
+  	Serial.print(P3);
+	Serial.println(" word: ");
+  	Serial.println(word,BIN);*/
+	return word;
+}
+
+void Hamming47_rx(){
+  if(rx_done_flag){
+	int current_4bits = 0;
+	int coded_word=rx_frame;
+	int eror_detected=hamming_eror_detection(coded_word);
+	if (eror_detected==0){
+		bitWrite (current_4bits,0,(coded_word&0b100)>>2);
+		bitWrite (current_4bits,1,(coded_word&0b10000)>>4);
+		bitWrite (current_4bits,2,(coded_word&0b100000)>>5);
+		bitWrite (current_4bits,3,(coded_word&0b1000000)>>6); 
+		decripted_word |= current_4bits;
+      	//Serial.println(" decripted_word bits: ");
+      	//Serial.println(decripted_word,BIN);
+		if (MLB_flag==1){
+			decripted_word = decripted_word<<4;
+			MLB_flag=0;
+			//Serial.println(" saved 4MLB bits: ");
+			//Serial.println(decripted_word,BIN);
+		}
+		else {
+			MLB_flag=1;
+			//Serial.println(" char detected, bin: ");
+			//Serial.println(decripted_word,BIN);
+			//Serial.println(" char detected: ");
+			//Serial.println((char) decripted_word);
+			//int len = string_length;
+			rx_data_string[rx_data_counter] = decripted_word;
+			rx_data_counter++;
+			rx_data_string[rx_data_counter] = '\0'; // add null
+			//Serial.println(" rx_data_string: ");
+			Serial.println(rx_data_string);
+			decripted_word=0;
+			if (rx_data_counter==string_length){
+				rx_data_counter=0;
+			}
+		}
+	}
+	else {
+		Serial.println(" Eror detected ");
+	}
+  }
+  rx_done_flag=0;
 	
 	
 	
 }
 
-void Hamming47_rx(){
+
+int hamming_eror_detection(int word){
+	int P1 = word&0b1;
+	int P2 = (word&0b10)>>1;
+	int D1 = (word&0b100)>>2;
+	int P3 = (word&0b1000)>>3;
+	int D2 = (word&0b10000)>>4;
+	int D3 = (word&0b100000)>>5;
+	int D4 = (word&0b1000000)>>6;
+	int P1_test = D1^D2^D4;
+	int P2_test = D1^D3^D4;
+	int P3_test = D2^D3^D4;
+	if((P1!=P1_test)||(P2!=P2_test)||(P3!=P3_test)){
+		return 1;
+	}
+	else{
+		return 0;
+	}
 	
 	
 	
 }
+
+
 
 void CRC4_rx(){
 	
@@ -280,9 +413,18 @@ void CRC4_rx(){
     uint8_t calculated_crc = remainder & 0xF; // Extract the last 4 bits
     	
 	if (calculated_crc == received_crc) {
-            Serial.println("CRC Valid");
+            //Serial.println("CRC Valid");
       		rx_frame = 0;
-      		Serial.println(char(received_data));
+      		//Serial.println(char(received_data));
+			rx_data_string[rx_CRC_counter]=received_data;
+			rx_CRC_counter++;
+			rx_data_string[rx_CRC_counter]='\0';
+			Serial.println(rx_data_string);
+			Serial.println(" rx_CRC_counter: ");
+			Serial.println(rx_CRC_counter);
+			if (rx_CRC_counter==string_length){
+				rx_CRC_counter=0;
+			}
         } else {
       		rx_frame = 0;
             Serial.println("CRC Error");
@@ -322,8 +464,8 @@ void CRC4_tx(){
 	  tx_data = (dividend | remainder); // Combine data and CRC
 	  tx_state = START;
 		
-		Serial.println("the transmit");
-		Serial.println(tx_data,BIN);
+		//Serial.println("the transmit");
+		//Serial.println(tx_data,BIN);
 
 	
 	
@@ -352,10 +494,13 @@ void loop() {
   
   layer2_tx();
   uart_tx();
-  layer2_rx();
   uart_rx();
-  
+  layer2_rx();
+
   
 
 }
+
+
+
 
