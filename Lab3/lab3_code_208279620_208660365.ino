@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = HAMMING;
+int  LAYER_MODE = CRC;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -40,6 +40,7 @@ int data_length;
 char string_data[16]= "Leiba & Zaidman";
 int string_length = sizeof(string_data);
 int rx_data_counter=0;
+int rx_CRC_counter=0;
 
 // Global variables for usart_tx
 unsigned long tx_last_time = 0;    // Tracks last transmission time
@@ -350,7 +351,7 @@ void Hamming47_rx(){
 			//Serial.println(" rx_data_string: ");
 			Serial.println(rx_data_string);
 			decripted_word=0;
-			if (rx_data_counter==data_length){
+			if (rx_data_counter==string_length){
 				rx_data_counter=0;
 			}
 		}
@@ -412,9 +413,18 @@ void CRC4_rx(){
     uint8_t calculated_crc = remainder & 0xF; // Extract the last 4 bits
     	
 	if (calculated_crc == received_crc) {
-            Serial.println("CRC Valid");
+            //Serial.println("CRC Valid");
       		rx_frame = 0;
-      		Serial.println(char(received_data));
+      		//Serial.println(char(received_data));
+			rx_data_string[rx_CRC_counter]=received_data;
+			rx_CRC_counter++;
+			rx_data_string[rx_CRC_counter]='\0';
+			Serial.println(rx_data_string);
+			Serial.println(" rx_CRC_counter: ");
+			Serial.println(rx_CRC_counter);
+			if (rx_CRC_counter==string_length){
+				rx_CRC_counter=0;
+			}
         } else {
       		rx_frame = 0;
             Serial.println("CRC Error");
@@ -454,8 +464,8 @@ void CRC4_tx(){
 	  tx_data = (dividend | remainder); // Combine data and CRC
 	  tx_state = START;
 		
-		Serial.println("the transmit");
-		Serial.println(tx_data,BIN);
+		//Serial.println("the transmit");
+		//Serial.println(tx_data,BIN);
 
 	
 	
