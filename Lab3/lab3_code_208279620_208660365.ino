@@ -363,7 +363,7 @@ void Hamming47_rx(){
 			rx_data_string[len+1] = '\0'; // add null
 			Serial.println(" rx_data_string: ");
 			Serial.println(rx_data_string);
-			
+			decripted_word=0;
 		}
 	}
 	else {
