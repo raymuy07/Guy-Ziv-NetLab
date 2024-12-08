@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = CRC;
+int  LAYER_MODE = HAMMING;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -96,19 +96,14 @@ void uart_tx() {
 	 
 		 
         digitalWrite(TX_PIN, (tx_data >> tx_bit_counter) & 1); // Send data bits
-      	//Serial.print(" starting Parity bit: ");
-	    //Serial.println(parity_bit);
+		
 		parity_bit ^= ((tx_data >> tx_bit_counter) & 1); //calculate parity_bit
-        /*Serial.print(" BIT ");
-	    Serial.println((tx_data >> tx_bit_counter) & 1);
-        Serial.print(" Parity ");
-	    Serial.println(parity_bit);
-		Serial.print(" tx_bit_counter ");
-	    Serial.println(tx_bit_counter);*/     
-        tx_bit_counter++;
+		tx_bit_counter++;
       	
         if (tx_bit_counter >= data_length) {
           tx_state = PARITY; 
+		  Serial.println("TX_data: ");
+          Serial.println(tx_data,BIN);
         }
         break;
 
@@ -117,7 +112,8 @@ void uart_tx() {
         
          /*Serial.print("Parity bit sent: ");
          Serial.println(parity_bit);*/
-        tx_state = STOP;
+        
+		tx_state = STOP;
         break;
 
       case STOP:
@@ -140,7 +136,8 @@ void uart_rx() {
   if (rx_state == IDLE) {
     
 	if (digitalRead(RX_PIN) == LOW) {  // see if there is start bit
-      rx_state = START;
+      
+	  rx_state = START;
       rx_last_time = current_time;
       sample_counter = 0;
       sampled_value = 0;
@@ -192,8 +189,8 @@ void uart_rx() {
 		  if (rx_bit_counter >= data_length) {
            
             rx_state = PARITY;
-            //Serial.println(" RX_frame: ");
-            //Serial.println(rx_frame,BIN);
+            Serial.println("RX_frame: ");
+            Serial.println(rx_frame,BIN);
           }
           break;
 
@@ -201,23 +198,15 @@ void uart_rx() {
           if (bit == calculated_parity) {
             rx_state = STOP;
           } else {
-
-            Serial.println("Parity error detected");
-            Serial.println("Parity detected: ");
-            Serial.println(bit);
-            Serial.println("Parity caculated: ");
-            Serial.println(calculated_parity);
-            rx_state = IDLE; // reset on parity error
+			  
+			rx_state = IDLE; // reset on parity error
           }
           break;
 
         case STOP:
-          if (bit == 1) {  // validate stop bit
-
-            Serial.print("Received Frame: ");
-            Serial.println(rx_frame, BIN);
-          } else {
-            Serial.println("Stop bit error detected");
+          if (bit != 1) {  // validate stop bit
+            
+			Serial.println("Stop bit error detected");
           }
           rx_state = IDLE;  // reset after processing frame
           rx_done_flag = 1;
@@ -268,15 +257,18 @@ void Hamming47_tx(){
 	static int IDLE_HAM_counter=0;
 	static int current_char=0;  
   	static int current_4bits=0; 
-	if (tx_state==IDLE && current_time-tx_last_time>=BIT_WAIT_TIME){
+	
+	
+	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){
+		
 		current_char = string_data[HAM_tx_counter];
-      	//Serial.print(" HAM_tx_counter ");
-  		//Serial.print(HAM_tx_counter);
 		int MSB_char=current_char>>4;
       	int LSB_char=current_char;
-      	if (IDLE_HAM_counter==0){
+      	
+		if (IDLE_HAM_counter==0){
 			IDLE_HAM_counter=1;
           	current_char=MSB_char;
+		
 		}else{
 			current_char=LSB_char;
 			HAM_tx_counter++;
@@ -286,14 +278,12 @@ void Hamming47_tx(){
 		tx_data= create_hamming_word(current_4bits);
       	parity_bit=1;
 		tx_state = START;
-      	//Serial.println(" HAM_tx_counter: ");
-  		//Serial.println(HAM_tx_counter);
+		random_wait_time = random(2000000, 4000000); // Random delay: 2 to 4 seconds
+		
 		if (HAM_tx_counter==string_length){
+			
 			HAM_tx_counter=0;
 		}
-      	//Serial.println(" tx_data: ");
-  		//Serial.println(tx_data,BIN);
-		
 	}
 	
 	
@@ -491,7 +481,7 @@ void loop() {
   layer2_tx();
   uart_tx();
   uart_rx();
-  layer2_rx();
+  //layer2_rx();
 
   
 
