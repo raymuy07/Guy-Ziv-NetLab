@@ -6,7 +6,7 @@
 #define HAM_TX_mask 0b1111		
 #define CRC_TX_mask 0b10011        
 #define DIVISOR_LENGTH 5    //these two comes together
-#define num_of_erors 0
+#define num_of_erors 1
 
 
 // States
@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = HAMMING;
+int  LAYER_MODE = CRC;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -446,6 +446,7 @@ void CRC4_rx(){
 			Serial.println(" rx_frame: ");
 			Serial.println(rx_frame,BIN);
 			bitWrite(rx_frame,0,((rx_frame&0b1)^1)>>0);
+      bitWrite(rx_frame,1,((rx_frame&0b10)^0b10)>>1);
 			Serial.println(" deformed rx_frame: ");
 			Serial.println(rx_frame,BIN);
 			break;
