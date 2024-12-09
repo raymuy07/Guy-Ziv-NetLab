@@ -1,6 +1,6 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 100000      // Bit duration in microseconds (50 bps)
+#define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 #define HAM_TX_mask 0b1111		
@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = CRC;
+int  LAYER_MODE = HAMMING;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -253,7 +253,7 @@ void layer2_rx(){
 
 void Hamming47_tx(){
   	
-  int current_time=micros();
+    unsigned long current_time=micros();
 	static int HAM_tx_counter=0;
 	static int IDLE_HAM_counter=0;
 	static int current_char=0;  
@@ -261,7 +261,14 @@ void Hamming47_tx(){
 	
 	
 	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){
-		
+    	/*Serial.println(" current_time - tx_last_time >= random_wait_time? ");
+		Serial.println(current_time - tx_last_time >= random_wait_time);  
+		Serial.println(" current_time - tx_last_time: ");
+		Serial.println(current_time - tx_last_time);
+		Serial.println(" tx_last_time: ");
+		Serial.println(tx_last_time);
+		Serial.println(" random_wait_time ");
+		Serial.println(random_wait_time);*/
 		current_char = string_data[HAM_tx_counter];
 		int MSB_char=current_char>>4;
       	int LSB_char=current_char;
@@ -279,7 +286,7 @@ void Hamming47_tx(){
 		tx_data= create_hamming_word(current_4bits);
       	parity_bit=1;
 		tx_state = START;
-		random_wait_time = random(2000000, 4000000); // Random delay: 2 to 4 seconds
+		random_wait_time = random(200000, 400000); // Random delay: 2 to 4 seconds
 		
 		if (HAM_tx_counter==string_length){
 			
@@ -496,11 +503,7 @@ void loop() {
   uart_tx();
   uart_rx();
   layer2_rx();
-
-  
-
+ 
 }
-
-
 
 
