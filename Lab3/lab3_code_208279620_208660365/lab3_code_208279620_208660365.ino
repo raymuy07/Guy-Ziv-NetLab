@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = HAMMING;
+int  LAYER_MODE = CRC;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -332,9 +332,7 @@ void Hamming47_rx(){
   if(rx_done_flag){
 	int current_4bits = 0;
 	int coded_word=rx_frame;
-	//for report///////////////////////////////////////////////////////////////////////////
-	//decripted_word |= coded_word;
-	
+//for report///////////////////////////////////////////////////////////////////////////
 	switch (num_of_erors){
 		case 0:
 			break;
@@ -363,11 +361,8 @@ void Hamming47_rx(){
 			Serial.println(coded_word,BIN);
 			break;
 	}
-	////////////////////////////////////////////////////
-	int eror_detected=hamming_eror_detection(coded_word);////////////////////
-	
-	
-	//int eror_detected=0;////////////////////
+/////////////////////////////////////////////////////////////////
+	int eror_detected=hamming_eror_detection(coded_word);
 	if (eror_detected==0){
 		bitWrite (current_4bits,0,(coded_word&0b100)>>2);
 		bitWrite (current_4bits,1,(coded_word&0b10000)>>4);
@@ -439,7 +434,23 @@ void CRC4_rx(){
 	
   
   if ((rx_state == IDLE)&&(rx_frame!=0)){
-    
+//for report////////////////////////////////////////////////////////////////////////////////    
+		switch (num_of_erors){
+		case 0:
+		//Serial.println(" rx_frame: ");
+		//	Serial.println(rx_frame,BIN);
+			//Serial.println(" deformed rx_frame: ");
+			//Serial.println(rx_frame,BIN);
+			break;
+		case 1:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(rx_frame,0,((rx_frame&0b1)^1)>>0);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			break;
+	}
+//////////////////////////////////////////////////////////////////////////////////
     // Separate the data and CRC
 	uint8_t received_data = (rx_frame >> 4) & 0xFF; // First 8 bits are data
 	uint8_t received_crc = rx_frame & 0xF;          // Last 4 bits are CRC
@@ -506,6 +517,8 @@ void CRC4_tx(){
     }
 		
 	  tx_data = (dividend | remainder); // Combine data and CRC
+	  //Serial.println(" tx_data: ");
+	  //Serial.println(tx_data,BIN);
 	  tx_state = START;
 		
 		//Serial.println("the transmit");
@@ -542,5 +555,6 @@ void loop() {
   layer2_rx();
  
 }
+
 
 
