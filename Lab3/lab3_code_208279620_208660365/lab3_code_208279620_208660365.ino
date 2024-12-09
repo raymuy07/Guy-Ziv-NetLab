@@ -6,7 +6,7 @@
 #define HAM_TX_mask 0b1111		
 #define CRC_TX_mask 0b10011        
 #define DIVISOR_LENGTH 5    //these two comes together
-
+#define num_of_erors 0
 
 
 // States
@@ -284,6 +284,8 @@ void Hamming47_tx(){
 		}
 		current_4bits = current_char&HAM_TX_mask;
 		tx_data= create_hamming_word(current_4bits);
+		Serial.println(" tx_data: ");
+		Serial.println(tx_data,BIN);
       	parity_bit=1;
 		tx_state = START;
 		random_wait_time = random(200000, 400000); // Random delay: 2 to 4 seconds
@@ -330,15 +332,50 @@ void Hamming47_rx(){
   if(rx_done_flag){
 	int current_4bits = 0;
 	int coded_word=rx_frame;
-	int eror_detected=hamming_eror_detection(coded_word);
+	//for report///////////////////////////////////////////////////////////////////////////
+	//decripted_word |= coded_word;
+	
+	switch (num_of_erors){
+		case 0:
+			break;
+		case 1:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+		case 2:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			bitWrite(coded_word,1,((rx_frame&0b10)^0b10)>>1);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+		case 3:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			bitWrite(coded_word,1,((rx_frame&0b10)^0b10)>>1);
+			bitWrite(coded_word,2,((rx_frame&0b100)^0b100)>>2);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+	}
+	////////////////////////////////////////////////////
+	int eror_detected=hamming_eror_detection(coded_word);////////////////////
+	
+	
+	//int eror_detected=0;////////////////////
 	if (eror_detected==0){
 		bitWrite (current_4bits,0,(coded_word&0b100)>>2);
 		bitWrite (current_4bits,1,(coded_word&0b10000)>>4);
 		bitWrite (current_4bits,2,(coded_word&0b100000)>>5);
 		bitWrite (current_4bits,3,(coded_word&0b1000000)>>6); 
 		decripted_word |= current_4bits;
-      	//Serial.println(" decripted_word bits: ");
-      	//Serial.println(decripted_word,BIN);
+		
+      	
 		if (MLB_flag==1){
 			decripted_word = decripted_word<<4;
 			MLB_flag=0;
@@ -349,8 +386,8 @@ void Hamming47_rx(){
 			MLB_flag=1;
 			//Serial.println(" char detected, bin: ");
 			//Serial.println(decripted_word,BIN);
-			//Serial.println(" char detected: ");
-			//Serial.println((char) decripted_word);
+			Serial.println(" char detected: ");
+			Serial.println(decripted_word,BIN);
 			//int len = string_length;
 			rx_data_string[rx_data_counter] = decripted_word;
 			rx_data_counter++;
