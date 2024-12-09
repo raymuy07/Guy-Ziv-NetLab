@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = CRC;
+int  LAYER_MODE = HAMMING;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -47,7 +47,7 @@ unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 uint16_t tx_data;
 int tx_bit_counter = 0;            // Counter for transmitted bits
-unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+unsigned long random_wait_time = 20000000; // Initial random wait time in microseconds
 int parity_bit = 1;                // Parity bit for transmission
 
 
@@ -59,16 +59,16 @@ void setup() {
   pinMode(TX_PIN, OUTPUT);
   pinMode(RX_PIN, INPUT);
   digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
-  Serial.begin(19200);
   randomSeed(analogRead(0));       // makes it truly random
   
   
   if (LAYER_MODE == HAMMING){  //calc the right data_length
   
-	data_length=8;	
-	
+	  data_length=8;	
+	  Serial.begin(9600);
 	}else{
 	  data_length=12;
+    Serial.begin(19200);
 	}						
 
 
@@ -284,8 +284,8 @@ void Hamming47_tx(){
 		}
 		current_4bits = current_char&HAM_TX_mask;
 		tx_data= create_hamming_word(current_4bits);
-		Serial.println(" tx_data: ");
-		Serial.println(tx_data,BIN);
+		//Serial.println(" tx_data: ");
+		//Serial.println(tx_data,BIN);
       	parity_bit=1;
 		tx_state = START;
 		random_wait_time = random(200000, 400000); // Random delay: 2 to 4 seconds
@@ -381,8 +381,8 @@ void Hamming47_rx(){
 			MLB_flag=1;
 			//Serial.println(" char detected, bin: ");
 			//Serial.println(decripted_word,BIN);
-			Serial.println(" char detected: ");
-			Serial.println(decripted_word,BIN);
+			//Serial.println(" char detected: ");
+			//Serial.println(decripted_word,BIN);
 			//int len = string_length;
 			rx_data_string[rx_data_counter] = decripted_word;
 			rx_data_counter++;
@@ -555,6 +555,3 @@ void loop() {
   layer2_rx();
  
 }
-
-
-
