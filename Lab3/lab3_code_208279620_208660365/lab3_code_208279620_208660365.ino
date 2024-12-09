@@ -1,12 +1,12 @@
 #define TX_PIN 5                 // Transmission pin
 #define RX_PIN 4                 // Reception pin
-#define BIT_WAIT_TIME 100000      // Bit duration in microseconds (50 bps)
+#define BIT_WAIT_TIME 20000      // Bit duration in microseconds (50 bps)
 #define NUMBER_OF_SAMPLES 3      // Number of samples per bit
 #define DELTA_TIME (BIT_WAIT_TIME / (NUMBER_OF_SAMPLES + 2)) 
 #define HAM_TX_mask 0b1111		
 #define CRC_TX_mask 0b10011        
 #define DIVISOR_LENGTH 5    //these two comes together
-
+#define num_of_erors 0
 
 
 // States
@@ -23,7 +23,7 @@
 ///need to arrange all of this:
 
 // Global variables for usart_rx
-int  LAYER_MODE = CRC;
+int  LAYER_MODE = HAMMING;
 unsigned long rx_last_time = 0;    // Tracks last sampling time
 int rx_state = IDLE;               // Current state of the receiver
 int rx_bit_counter = 0;            // Counter for received data bits
@@ -47,7 +47,7 @@ unsigned long tx_last_time = 0;    // Tracks last transmission time
 int tx_state = IDLE;               // Current state of the transmitter
 uint16_t tx_data;
 int tx_bit_counter = 0;            // Counter for transmitted bits
-unsigned long random_wait_time = 1000000; // Initial random wait time in microseconds
+unsigned long random_wait_time = 20000000; // Initial random wait time in microseconds
 int parity_bit = 1;                // Parity bit for transmission
 
 
@@ -59,16 +59,16 @@ void setup() {
   pinMode(TX_PIN, OUTPUT);
   pinMode(RX_PIN, INPUT);
   digitalWrite(TX_PIN, HIGH);      // Set line HIGH (idle state)
-  Serial.begin(19200);
   randomSeed(analogRead(0));       // makes it truly random
   
   
   if (LAYER_MODE == HAMMING){  //calc the right data_length
   
-	data_length=8;	
-	
+	  data_length=8;	
+	  Serial.begin(9600);
 	}else{
 	  data_length=12;
+    Serial.begin(19200);
 	}						
 
 
@@ -253,21 +253,28 @@ void layer2_rx(){
 
 void Hamming47_tx(){
   	
-  int current_time=micros();
+    unsigned long current_time=micros();
 	static int HAM_tx_counter=0;
 	static int IDLE_HAM_counter=0;
 	static int current_char=0;  
   	static int current_4bits=0; 
 	
 	
-	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){
-		
+	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){ //waiting enough time between sends
+    	/*Serial.println(" current_time - tx_last_time >= random_wait_time? ");
+		Serial.println(current_time - tx_last_time >= random_wait_time);  
+		Serial.println(" current_time - tx_last_time: ");
+		Serial.println(current_time - tx_last_time);
+		Serial.println(" tx_last_time: ");
+		Serial.println(tx_last_time);
+		Serial.println(" random_wait_time ");
+		Serial.println(random_wait_time);*/
 		current_char = string_data[HAM_tx_counter];
 		int MSB_char=current_char>>4;
       	int LSB_char=current_char;
       	
 		if (IDLE_HAM_counter==0){
-			IDLE_HAM_counter=1;
+			IDLE_HAM_counter=1;				// a flag for whether MLB or LSB is sent
           	current_char=MSB_char;
 		
 		}else{
@@ -275,13 +282,15 @@ void Hamming47_tx(){
 			HAM_tx_counter++;
 			IDLE_HAM_counter=0;
 		}
-		current_4bits = current_char&HAM_TX_mask;
-		tx_data= create_hamming_word(current_4bits);
+		current_4bits = current_char&HAM_TX_mask;		//send only the reletive bits
+		tx_data= create_hamming_word(current_4bits);	// HAM coding the 4 data bits
+		//Serial.println(" tx_data: ");
+		//Serial.println(tx_data,BIN);
       	parity_bit=1;
 		tx_state = START;
-		random_wait_time = random(2000000, 4000000); // Random delay: 2 to 4 seconds
+		random_wait_time = random(200000, 400000); // Random delay: 2 to 4 seconds
 		
-		if (HAM_tx_counter==string_length){
+		if (HAM_tx_counter==string_length){             //finished sending all of data_string restart
 			
 			HAM_tx_counter=0;
 		}
@@ -289,7 +298,7 @@ void Hamming47_tx(){
 	
 	
 }
-int create_hamming_word(uint16_t HAM_data){
+int create_hamming_word(uint16_t HAM_data){ 		//calc the P1,2 and 3, and reassmble the word
 	
 	int D1 = HAM_data&0b1;
 	int D2 = (HAM_data&0b10)>>1;
@@ -320,19 +329,49 @@ int create_hamming_word(uint16_t HAM_data){
 }
 
 void Hamming47_rx(){
-  if(rx_done_flag){
+  if(rx_done_flag){							//make sure layer1 finished all its tasks
 	int current_4bits = 0;
 	int coded_word=rx_frame;
-	int eror_detected=hamming_eror_detection(coded_word);
-	if (eror_detected==0){
+//for report///////////////////////////////////////////////////////////////////////////
+	switch (num_of_erors){
+		case 0:
+			break;
+		case 1:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+		case 2:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			bitWrite(coded_word,1,((rx_frame&0b10)^0b10)>>1);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+		case 3:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(coded_word,0,((rx_frame&0b1)^1)>>0);
+			bitWrite(coded_word,1,((rx_frame&0b10)^0b10)>>1);
+			bitWrite(coded_word,2,((rx_frame&0b100)^0b100)>>2);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(coded_word,BIN);
+			break;
+	}
+/////////////////////////////////////////////////////////////////
+	int eror_detected=hamming_eror_detection(coded_word);   			//make sure HAM sent proparly
+	if (eror_detected==0){ 												//reframe the data
 		bitWrite (current_4bits,0,(coded_word&0b100)>>2);
 		bitWrite (current_4bits,1,(coded_word&0b10000)>>4);
 		bitWrite (current_4bits,2,(coded_word&0b100000)>>5);
 		bitWrite (current_4bits,3,(coded_word&0b1000000)>>6); 
 		decripted_word |= current_4bits;
-      	//Serial.println(" decripted_word bits: ");
-      	//Serial.println(decripted_word,BIN);
-		if (MLB_flag==1){
+		
+      	
+		if (MLB_flag==1){												//is the data MLB or LSB
 			decripted_word = decripted_word<<4;
 			MLB_flag=0;
 			//Serial.println(" saved 4MLB bits: ");
@@ -343,7 +382,7 @@ void Hamming47_rx(){
 			//Serial.println(" char detected, bin: ");
 			//Serial.println(decripted_word,BIN);
 			//Serial.println(" char detected: ");
-			//Serial.println((char) decripted_word);
+			//Serial.println(decripted_word,BIN);
 			//int len = string_length;
 			rx_data_string[rx_data_counter] = decripted_word;
 			rx_data_counter++;
@@ -351,7 +390,7 @@ void Hamming47_rx(){
 			//Serial.println(" rx_data_string: ");
 			Serial.println(rx_data_string);
 			decripted_word=0;
-			if (rx_data_counter==string_length){
+			if (rx_data_counter==string_length){						//if all data_string recived restart
 				rx_data_counter=0;
 			}
 		}
@@ -367,7 +406,7 @@ void Hamming47_rx(){
 }
 
 
-int hamming_eror_detection(int word){
+int hamming_eror_detection(int word){				//check HAM corectnes
 	int P1 = word&0b1;
 	int P2 = (word&0b10)>>1;
 	int D1 = (word&0b100)>>2;
@@ -395,7 +434,23 @@ void CRC4_rx(){
 	
   
   if ((rx_state == IDLE)&&(rx_frame!=0)){
-    
+//for report////////////////////////////////////////////////////////////////////////////////    
+		switch (num_of_erors){
+		case 0:
+		//Serial.println(" rx_frame: ");
+		//	Serial.println(rx_frame,BIN);
+			//Serial.println(" deformed rx_frame: ");
+			//Serial.println(rx_frame,BIN);
+			break;
+		case 1:
+			Serial.println(" rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			bitWrite(rx_frame,0,((rx_frame&0b1)^1)>>0);
+			Serial.println(" deformed rx_frame: ");
+			Serial.println(rx_frame,BIN);
+			break;
+	}
+//////////////////////////////////////////////////////////////////////////////////
     // Separate the data and CRC
 	uint8_t received_data = (rx_frame >> 4) & 0xFF; // First 8 bits are data
 	uint8_t received_crc = rx_frame & 0xF;          // Last 4 bits are CRC
@@ -462,6 +517,8 @@ void CRC4_tx(){
     }
 		
 	  tx_data = (dividend | remainder); // Combine data and CRC
+	  //Serial.println(" tx_data: ");
+	  //Serial.println(tx_data,BIN);
 	  tx_state = START;
 		
 		//Serial.println("the transmit");
@@ -496,11 +553,5 @@ void loop() {
   uart_tx();
   uart_rx();
   layer2_rx();
-
-  
-
+ 
 }
-
-
-
-
