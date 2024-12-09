@@ -260,7 +260,7 @@ void Hamming47_tx(){
   	static int current_4bits=0; 
 	
 	
-	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){
+	if ((tx_state==IDLE) && (current_time - tx_last_time >= random_wait_time)){ //waiting enough time between sends
     	/*Serial.println(" current_time - tx_last_time >= random_wait_time? ");
 		Serial.println(current_time - tx_last_time >= random_wait_time);  
 		Serial.println(" current_time - tx_last_time: ");
@@ -274,7 +274,7 @@ void Hamming47_tx(){
       	int LSB_char=current_char;
       	
 		if (IDLE_HAM_counter==0){
-			IDLE_HAM_counter=1;
+			IDLE_HAM_counter=1;				// a flag for whether MLB or LSB is sent
           	current_char=MSB_char;
 		
 		}else{
@@ -282,15 +282,15 @@ void Hamming47_tx(){
 			HAM_tx_counter++;
 			IDLE_HAM_counter=0;
 		}
-		current_4bits = current_char&HAM_TX_mask;
-		tx_data= create_hamming_word(current_4bits);
+		current_4bits = current_char&HAM_TX_mask;		//send only the reletive bits
+		tx_data= create_hamming_word(current_4bits);	// HAM coding the 4 data bits
 		//Serial.println(" tx_data: ");
 		//Serial.println(tx_data,BIN);
       	parity_bit=1;
 		tx_state = START;
 		random_wait_time = random(200000, 400000); // Random delay: 2 to 4 seconds
 		
-		if (HAM_tx_counter==string_length){
+		if (HAM_tx_counter==string_length){             //finished sending all of data_string restart
 			
 			HAM_tx_counter=0;
 		}
@@ -298,7 +298,7 @@ void Hamming47_tx(){
 	
 	
 }
-int create_hamming_word(uint16_t HAM_data){
+int create_hamming_word(uint16_t HAM_data){ 		//calc the P1,2 and 3, and reassmble the word
 	
 	int D1 = HAM_data&0b1;
 	int D2 = (HAM_data&0b10)>>1;
@@ -329,7 +329,7 @@ int create_hamming_word(uint16_t HAM_data){
 }
 
 void Hamming47_rx(){
-  if(rx_done_flag){
+  if(rx_done_flag){							//make sure layer1 finished all its tasks
 	int current_4bits = 0;
 	int coded_word=rx_frame;
 //for report///////////////////////////////////////////////////////////////////////////
@@ -362,8 +362,8 @@ void Hamming47_rx(){
 			break;
 	}
 /////////////////////////////////////////////////////////////////
-	int eror_detected=hamming_eror_detection(coded_word);
-	if (eror_detected==0){
+	int eror_detected=hamming_eror_detection(coded_word);   			//make sure HAM sent proparly
+	if (eror_detected==0){ 												//reframe the data
 		bitWrite (current_4bits,0,(coded_word&0b100)>>2);
 		bitWrite (current_4bits,1,(coded_word&0b10000)>>4);
 		bitWrite (current_4bits,2,(coded_word&0b100000)>>5);
@@ -371,7 +371,7 @@ void Hamming47_rx(){
 		decripted_word |= current_4bits;
 		
       	
-		if (MLB_flag==1){
+		if (MLB_flag==1){												//is the data MLB or LSB
 			decripted_word = decripted_word<<4;
 			MLB_flag=0;
 			//Serial.println(" saved 4MLB bits: ");
@@ -390,7 +390,7 @@ void Hamming47_rx(){
 			//Serial.println(" rx_data_string: ");
 			Serial.println(rx_data_string);
 			decripted_word=0;
-			if (rx_data_counter==string_length){
+			if (rx_data_counter==string_length){						//if all data_string recived restart
 				rx_data_counter=0;
 			}
 		}
@@ -406,7 +406,7 @@ void Hamming47_rx(){
 }
 
 
-int hamming_eror_detection(int word){
+int hamming_eror_detection(int word){				//check HAM corectnes
 	int P1 = word&0b1;
 	int P2 = (word&0b10)>>1;
 	int D1 = (word&0b100)>>2;
