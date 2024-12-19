@@ -17,7 +17,7 @@ uint8_t send_buffer[25];  // 4 header + 17 payload + 4 CRC
 uint8_t ack_destination_address = 0x1A;
 uint8_t ack_source_address = 0x0A; 
 uint8_t ack_frame_type = 0;
-uint8_t ack_payload_length = 0;
+uint8_t ack_payload_length = 17;
 int ack_Sn=0;
 
 void setup() {
@@ -46,7 +46,7 @@ void extract_raw_data(uint8_t *raw_data){
     memcpy(&received_crc, &raw_data[4 + payload_length], 4);
 
     // Calculate CRC (should match TX logic)
-    calculated_crc = calculateCRC(&raw_data[0], 4 + payload_length);
+    calculated_crc = calculateCRC(&raw_data[0], 21);
 	
 	//print_data();
 
@@ -61,20 +61,15 @@ void extract_raw_data(uint8_t *raw_data){
 }
 
 void build_ack_packet(){
-	
-    
-    
-	memset(send_buffer, 0, sizeof(send_buffer));  // Clear buffer
-	
-	send_buffer[0] = ack_destination_address;                   // Destination address
-    send_buffer[1] = ack_source_address;                        // Source address
-    send_buffer[2] = ack_frame_type;                        	// Frame type (0)
-    send_buffer[3] = ack_payload_length;                        // Payload length (fixed 16 bytes)
 
-    memcpy(&send_buffer[4], ack_Sn, payload_length);     
+  send_buffer[0] = ack_destination_address;                   // Destination address
+  send_buffer[1] = ack_source_address;                        // Source address
+  send_buffer[2] = ack_frame_type;                        	// Frame type (0)
+  send_buffer[3] = ack_payload_length;                        // Payload length (fixed 16 bytes)
+  send_buffer[4] = ack_Sn;     
 	memcpy(&send_buffer[5], 0, payload_length-1);
 	
-	unsigned long crc = calculateCRC(send_buffer[0], 20);
+	unsigned long crc = calculateCRC(send_buffer[0], 21);
 	memcpy(&send_buffer[4 + payload_length], &crc, 4);     // copy CRC 
 	
 	
@@ -101,29 +96,47 @@ void loop() {
     
     // Check if a packet has been received
 	if (readPackage(receive_buffer, sizeof(receive_buffer))) {
-	  delay(100);
-    /*Serial.println("Raw Data Received:");
+	  //delay(100);
+    Serial.println("Raw Data Received:");
         for (int i = 0; i < 25; i++) {
             Serial.print(receive_buffer[i], HEX);
             Serial.print(" ");
         }
-	*/
+	
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
-  //      Serial.println("CRC Verification: SUCCESS");
+      // Serial.println("CRC Verification: SUCCESS");
 		ack_Sn = ((payload_data[0]&0x01)^1);
-		build_ack_packet();//should br ack with new sn
-  } else {
-   //     Serial.println("CRC Verification: FAILED");
-		build_ack_packet();//should be ack with earlier sn
   }
+  build_ack_packet();//should be ack with earlier sn
+  //delay(1000);
   
-  int sent = sendPackage(send_buffer, 25);
+
+  while (1){      
+        int result = sendPackage(send_buffer, sizeof(send_buffer));
+        //delay (10000);
+        if (result == 0) {
+            //Serial.println("Line busy. Retrying...");
+        } else {
+            Serial.println("sent ack:");
+            break;
+        }
+  }Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);
+
+
+
+
+  /*int sent = sendPackage(send_buffer, 25);
   //delay(100);
   //Serial.print("did sent? "); Serial.println(sent);
-  Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);
+  Serial.println("ack packet sent:");
+        for (int i = 0; i < 25; i++) {
+            Serial.print(send_buffer[i], HEX);
+            Serial.print(" ");
+        }
+  Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);*/
+
 	}
-	
 }
 
 
