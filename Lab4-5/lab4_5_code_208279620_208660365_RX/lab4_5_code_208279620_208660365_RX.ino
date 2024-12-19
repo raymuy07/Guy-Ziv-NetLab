@@ -43,11 +43,22 @@ void extract_raw_data(uint8_t *raw_data){
     payload_data[payload_length] = '\0'; // Null-terminate the payload string
 
     // Extract CRC
-    memcpy(&received_crc, &raw_data[4 + payload_length], 4);
+    memcpy(&received_crc, &raw_data[4 + payload_length], 4);////////////////maybe backwards
+    received_crc = __builtin_bswap32(received_crc);// allins bits the right way
+    //received_crc = *((unsigned long*)(raw_data));
+    Serial.println("Data for CRC calculation:");
+    for (int i = 0; i < 21; i++) {
+      Serial.print(raw_data[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
 
     // Calculate CRC (should match TX logic)
     calculated_crc = calculateCRC(&raw_data[0], 21);
-	
+	  Serial.println("RECIVED CRC: ");
+    Serial.println(received_crc, HEX);
+    Serial.println(" calculateCRC: ");
+    Serial.println(calculated_crc, HEX);
 	//print_data();
 
 	// Verify CRC
@@ -69,7 +80,7 @@ void build_ack_packet(){
   send_buffer[4] = ack_Sn;     
 	memcpy(&send_buffer[5], 0, payload_length-1);
 	
-	unsigned long crc = calculateCRC(send_buffer[0], 21);
+	unsigned long crc = calculateCRC(&send_buffer[0], 21);
 	memcpy(&send_buffer[4 + payload_length], &crc, 4);     // copy CRC 
 	
 	
@@ -118,7 +129,7 @@ void loop() {
         if (result == 0) {
             //Serial.println("Line busy. Retrying...");
         } else {
-            Serial.println("sent ack:");
+            //Serial.println("sent ack:");
             break;
         }
   }Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);

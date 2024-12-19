@@ -57,7 +57,7 @@ void build_packet(){
     memcpy(&send_buffer[5], payload_data, payload_length-1);     
 	
 	
-	unsigned long crc = calculateCRC(send_buffer[0], 21);// --------------------shoudlnt be 21?------------------
+	unsigned long crc = calculateCRC(send_buffer[0], 20);// --------------------shoudlnt be 21?------------------
 	memcpy(&send_buffer[5 + payload_length-1], &crc, 4);     // copy CRC 
 	
 	
