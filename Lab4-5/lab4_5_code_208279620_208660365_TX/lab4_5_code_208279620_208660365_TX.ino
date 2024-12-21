@@ -7,11 +7,18 @@
 uint8_t frame_type = 0x00;
 uint8_t source_address = 0x1A ;
 uint8_t destination_address = 0x0A ;
-
-
+unsigned long start_RTT_measurment=0;
+unsigned long stop_RTT_measurment=0;
+unsigned long RTT=0;
+unsigned long average_RTT=0;
+int RTT_counter=0;
+float bad_frames_counter=0;
+float total_frames_counter=0;
+float eror_prob;
 uint8_t sn_index = 0;                        // Sequence number of frame
 uint8_t rn_index = 0;                        // Received ACK number
 uint8_t ack_sn_data = 0x00;                  // Field combining ACK/DATA and SN
+unsigned long zero_time=0;
 
 
 char payload_data[16]= "Leiba & Zaidman";
@@ -27,11 +34,12 @@ uint8_t ack_buffer[25];
 
 
 void setup() {
-  
+  zero_time=millis();
   setAddress(TX, 10);   
   //Serial.println("Transmitter initialized.");
   build_packet();
   ref_time = millis();
+  
 
 }
 
@@ -41,7 +49,7 @@ void build_packet(){
 	
     
 	memset(send_buffer, 0, sizeof(send_buffer));  // Clear buffer
-  Serial.println("send_buffer should be zero: ");
+  //Serial.println("send_buffer should be zero: ");
   /*for( int i=0; i<25 ; i++){
     Serial.println(send_buffer[i], HEX);
     Serial.println(" ");
@@ -67,8 +75,8 @@ void build_packet(){
     Serial.println(send_buffer[i], HEX);
     Serial.println(" ");
   }*/
-  Serial.println("crc: ");
-  Serial.println(crc, HEX);
+  //Serial.println("crc: ");
+  //Serial.println(crc, HEX);
 	memcpy(&send_buffer[5 + payload_length-1], &crc, 4);     // copy CRC 
 	
 	
@@ -96,6 +104,8 @@ void is_time_out() {
         int result = sendPackage(send_buffer, sizeof(send_buffer));
         //delay (3000);
         if (result == 1) {
+            start_RTT_measurment = millis();
+            total_frames_counter++;
             Serial.println("Timeout! Resending frame...");
             Serial.println("Packet resent successfully.");
             ref_time = millis();
@@ -104,7 +114,16 @@ void is_time_out() {
     }
 }
 
-
+void calc_efficency(){
+  float X = total_frames_counter-bad_frames_counter;//num of successfully sent frames
+  float D = 16;
+  current_time = millis();
+  unsigned long T = (current_time - zero_time)/1000;
+  float R = 10*10^6;
+  float efficency = (X*D)/(T*R);
+  Serial.println("Efficency: ");
+  Serial.println(efficency);
+}
 
 void is_ack() {
 	
@@ -113,19 +132,40 @@ void is_ack() {
     
 	if (received_ack) {
     ref_time = millis();
+    //RTT and eror propability calculations
+    stop_RTT_measurment = millis();
+    RTT = (stop_RTT_measurment - start_RTT_measurment);
+    average_RTT = ((average_RTT*RTT_counter)+RTT)/(RTT_counter+1);
+    RTT_counter++;
+    eror_prob = ((bad_frames_counter)/(total_frames_counter));
+    ////////////
     Serial.println(" ACK received ");
 		uint8_t ack_sn = ack_buffer[4] & 0x01;  // Extract SN bit from ACK
-    Serial.println(" ack_sn: ");
+    /*Serial.println(" ack_sn: ");
     Serial.println(ack_sn);
     Serial.println(" sn_index: ");
-    Serial.println(sn_index);
+    Serial.println(sn_index);*/
+	  Serial.println(" RTT (ms): ");
+    Serial.println(RTT);
+	  Serial.println(" average RTT (ms): ");
+    Serial.println(average_RTT);
+	  Serial.println(" Eror propability: ");
+    Serial.println(eror_prob);
+    calc_efficency();
     if (ack_sn != sn_index) {  // Correct ACK received
   
       Serial.println("Correct ACK received. Sending next frame...");
       sn_index ^= 0x01;      // Flip SN (0 -> 1, 1 -> 0)
           
     //it is the same packet but in case there will be more data...
-    }
+    } else{ //bad ack recived
+		  bad_frames_counter++;
+      /*Serial.println("wrong ACK received. bad_frames_counter: ");
+      Serial.println(bad_frames_counter);
+      Serial.println("total_frames_counter: ");
+      Serial.println(total_frames_counter);*/
+
+	  }
     build_packet();        // build next packet
     while (1){      
       int result = sendPackage(send_buffer, sizeof(send_buffer));
@@ -133,12 +173,13 @@ void is_ack() {
       if (result == 0) {
           //Serial.println("Line busy. Retrying...");
       } else {
-          Serial.println("got ack, Packet sent successfully.");
+          //Serial.println("got ack, Packet sent successfully.");
+		  start_RTT_measurment = millis();
+		  total_frames_counter++;
           break;
       }
     }
     ref_time = millis();   // Reset timer
-    Serial.println("broke");
     received_ack = 0;
   }
 }
@@ -160,8 +201,8 @@ void testCRC(){
 
 void loop() {
 	
-	is_time_out();  
-  is_ack();  
+	is_time_out(); 
+  is_ack();
   //testCRC();  
 
 }

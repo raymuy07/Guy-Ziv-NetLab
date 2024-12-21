@@ -57,9 +57,9 @@ void extract_raw_data(uint8_t *raw_data){
     } else {
         Serial.println("CRC Verification: FAILED");
         Serial.println("recived_CRC : ");
-        Serial.println(received_crc);
+        Serial.println(received_crc,HEX);
         Serial.println("calc_CRC : ");
-        Serial.println(calculated_crc);
+        Serial.println(calculated_crc,HEX);
     }
 	
 }
@@ -101,11 +101,11 @@ void loop() {
     // Check if a packet has been received
 	if (readPackage(receive_buffer, sizeof(receive_buffer))) {
 	  //delay(100);
-    Serial.println("Raw Data Received:");
+    /*Serial.println("Raw Data Received:");
         for (int i = 0; i < 25; i++) {
             Serial.print(receive_buffer[i], HEX);
             Serial.print(" ");
-        }
+        }*/
 	
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
@@ -125,11 +125,9 @@ void loop() {
             //Serial.println("sent ack:");
             break;
         }
-  }Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);
-
-
-
-
+  }
+  
+  //Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);
   /*int sent = sendPackage(send_buffer, 25);
   //delay(100);
   //Serial.print("did sent? "); Serial.println(sent);
