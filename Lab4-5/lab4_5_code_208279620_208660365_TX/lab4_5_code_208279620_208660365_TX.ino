@@ -41,7 +41,11 @@ void build_packet(){
 	
     
 	memset(send_buffer, 0, sizeof(send_buffer));  // Clear buffer
-	
+  Serial.println("send_buffer should be zero: ");
+  /*for( int i=0; i<25 ; i++){
+    Serial.println(send_buffer[i], HEX);
+    Serial.println(" ");
+  }*/
 	send_buffer[0] = destination_address;                   // Destination address
     send_buffer[1] = source_address;                        // Source address
     send_buffer[2] = frame_type;                        	// Frame type (0)
@@ -57,7 +61,14 @@ void build_packet(){
     memcpy(&send_buffer[5], payload_data, payload_length-1);     
 	
 	
-	unsigned long crc = calculateCRC(send_buffer[0], 20);// --------------------shoudlnt be 21?------------------
+	unsigned long crc = calculateCRC(&send_buffer[0], 21);// --------------------shoudlnt be 21?------------------
+ /* Serial.println("send_buffer calcing crc: ");
+ for( int i=0; i<25 ; i++){
+    Serial.println(send_buffer[i], HEX);
+    Serial.println(" ");
+  }*/
+  Serial.println("crc: ");
+  Serial.println(crc, HEX);
 	memcpy(&send_buffer[5 + payload_length-1], &crc, 4);     // copy CRC 
 	
 	
@@ -132,13 +143,25 @@ void is_ack() {
   }
 }
 
+void testCRC(){
+  char testString[] = {"Leiba & Zaidman"};
+  char frame[10] = {0};
+  for (int i =0; i<6; i++){
+    frame[i] = testString[i];
+  }
+  unsigned long crc_test = calculateCRC(testString,15);
+  Serial.println("crc_test: ");
+  Serial.println(crc_test, HEX);
+  delay(10000);
 
+}
 
 
 
 void loop() {
 	
 	is_time_out();  
-  is_ack();    
+  is_ack();  
+  //testCRC();  
 
 }

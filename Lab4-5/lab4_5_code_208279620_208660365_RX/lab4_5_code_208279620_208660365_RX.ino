@@ -43,22 +43,11 @@ void extract_raw_data(uint8_t *raw_data){
     payload_data[payload_length] = '\0'; // Null-terminate the payload string
 
     // Extract CRC
-    memcpy(&received_crc, &raw_data[4 + payload_length], 4);////////////////maybe backwards
-    received_crc = __builtin_bswap32(received_crc);// allins bits the right way
-    //received_crc = *((unsigned long*)(raw_data));
-    Serial.println("Data for CRC calculation:");
-    for (int i = 0; i < 21; i++) {
-      Serial.print(raw_data[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
+    memcpy(&received_crc, &raw_data[4 + payload_length], 4);
 
     // Calculate CRC (should match TX logic)
     calculated_crc = calculateCRC(&raw_data[0], 21);
-	  Serial.println("RECIVED CRC: ");
-    Serial.println(received_crc, HEX);
-    Serial.println(" calculateCRC: ");
-    Serial.println(calculated_crc, HEX);
+	
 	//print_data();
 
 	// Verify CRC
@@ -67,6 +56,10 @@ void extract_raw_data(uint8_t *raw_data){
 		
     } else {
         Serial.println("CRC Verification: FAILED");
+        Serial.println("recived_CRC : ");
+        Serial.println(received_crc);
+        Serial.println("calc_CRC : ");
+        Serial.println(calculated_crc);
     }
 	
 }
