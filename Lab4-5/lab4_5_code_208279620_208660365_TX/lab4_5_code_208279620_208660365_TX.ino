@@ -20,8 +20,8 @@ uint8_t rn_index = 0;                        // Received ACK number
 uint8_t ack_sn_data = 0x00;                  // Field combining ACK/DATA and SN
 unsigned long zero_time=0;
 
-
-char payload_data[16]= "Leiba & Zaidman";
+char dataset[4][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv1234567","Ziv & Guy1234567"};
+char payload_data[16]= {0};
 uint8_t payload_length = 17;
 
 
@@ -37,10 +37,10 @@ void setup() {
   zero_time=millis();
   setAddress(TX, 10);   
   //Serial.println("Transmitter initialized.");
+  strncpy(payload_data, dataset[0], sizeof(payload_data));
+  payload_data[sizeof(payload_data) - 1] = '\0'; // Ensure null-termination
   build_packet();
   ref_time = millis();
-  
-
 }
 
 
@@ -119,8 +119,16 @@ void calc_efficency(){
   float D = 16;
   current_time = millis();
   unsigned long T = (current_time - zero_time)/1000;
-  float R = 10*10^6;
+  float R = 10;
   float efficency = (X*D)/(T*R);
+    Serial.println("X: ");
+  Serial.println(X);
+    Serial.println("T: ");
+  Serial.println(T);
+    Serial.println("D: ");
+  Serial.println(D);
+    Serial.println("R: ");
+  Serial.println(R);
   Serial.println("Efficency: ");
   Serial.println(efficency);
 }
