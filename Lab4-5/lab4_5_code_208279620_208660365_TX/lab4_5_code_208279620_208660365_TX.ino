@@ -19,6 +19,7 @@ uint8_t sn_index = 0;                        // Sequence number of frame
 uint8_t rn_index = 0;                        // Received ACK number
 uint8_t ack_sn_data = 0x00;                  // Field combining ACK/DATA and SN
 unsigned long zero_time=0;
+int dataset_index=0;
 
 char dataset[4][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv1234567","Ziv & Guy1234567"};
 char payload_data[16]= {0};
@@ -37,8 +38,8 @@ void setup() {
   zero_time=millis();
   setAddress(TX, 10);   
   //Serial.println("Transmitter initialized.");
-  strncpy(payload_data, dataset[0], sizeof(payload_data));
-  payload_data[sizeof(payload_data) - 1] = '\0'; // Ensure null-termination
+  strncpy(payload_data, dataset[0], payload_length-1);
+  payload_data[payload_length-1] = '\0'; // Ensure null-termination
   build_packet();
   ref_time = millis();
 }
@@ -121,14 +122,14 @@ void calc_efficency(){
   unsigned long T = (current_time - zero_time)/1000;
   float R = 10;
   float efficency = (X*D)/(T*R);
-    Serial.println("X: ");
+    /*Serial.println("X: ");
   Serial.println(X);
     Serial.println("T: ");
   Serial.println(T);
     Serial.println("D: ");
   Serial.println(D);
     Serial.println("R: ");
-  Serial.println(R);
+  Serial.println(R);*/
   Serial.println("Efficency: ");
   Serial.println(efficency);
 }
@@ -147,7 +148,7 @@ void is_ack() {
     RTT_counter++;
     eror_prob = ((bad_frames_counter)/(total_frames_counter));
     ////////////
-    Serial.println(" ACK received ");
+    //Serial.println(" ACK received ");
 		uint8_t ack_sn = ack_buffer[4] & 0x01;  // Extract SN bit from ACK
     /*Serial.println(" ack_sn: ");
     Serial.println(ack_sn);
@@ -161,8 +162,21 @@ void is_ack() {
     Serial.println(eror_prob);
     calc_efficency();
     if (ack_sn != sn_index) {  // Correct ACK received
-  
-      Serial.println("Correct ACK received. Sending next frame...");
+      
+      
+      Serial.println("dataset_index: ");
+      Serial.println(dataset_index);
+
+      dataset_index = dataset_index+1;
+      if (dataset_index == 4){
+		Serial.println("Resetting dataset_index to 0.");
+        dataset_index = 0;
+      }
+
+      //Serial.println("Correct ACK received. Sending next frame...");
+
+      strncpy(payload_data, dataset[dataset_index], payload_length-1);
+      payload_data[payload_length-1] = '\0'; // Ensure null-termination
       sn_index ^= 0x01;      // Flip SN (0 -> 1, 1 -> 0)
           
     //it is the same packet but in case there will be more data...

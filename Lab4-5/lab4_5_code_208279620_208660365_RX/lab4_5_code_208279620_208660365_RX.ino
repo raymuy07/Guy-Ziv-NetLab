@@ -10,6 +10,8 @@ uint8_t payload_length;
 // we know the packet is with fixed size.
 uint8_t receive_buffer[25];  // 24 bytes: 4 header + 16 payload + 4 CRC
 char payload_data[17];     // Buffer for payload data
+char ack_data[1];
+char real_data[16];
 char packets_buffer[250];
 unsigned long received_crc;  // Received CRC
 unsigned long calculated_crc; // Calculated CRC
@@ -39,7 +41,9 @@ void extract_raw_data(uint8_t *raw_data){
 
     // Copy payload and ensure null-termination
     memset(payload_data, 0, sizeof(payload_data));  // Clear payload buffer
+    ack_data[0] = raw_data[4];
     memcpy(payload_data, &raw_data[4], payload_length);
+    memcpy(real_data, &raw_data[5], payload_length-1);
     payload_data[payload_length] = '\0'; // Null-terminate the payload string
 
     // Extract CRC
@@ -52,7 +56,7 @@ void extract_raw_data(uint8_t *raw_data){
 
 	// Verify CRC
     if (calculated_crc == received_crc) {
-        Serial.println("CRC Verification: SUCCESS");
+        //Serial.println("CRC Verification: SUCCESS");
 		
     } else {
         Serial.println("CRC Verification: FAILED");
@@ -82,15 +86,18 @@ void build_ack_packet(){
 
 
 void print_data(){
-	
+	/*
     Serial.println("Packet Received:");
     Serial.print("Destination Address: 0x"); Serial.println(destination_address, HEX);
     Serial.print("Source Address: 0x"); Serial.println(source_address, HEX);
     Serial.print("Frame Type: "); Serial.println(frame_type);
-    Serial.print("Payload Length: "); Serial.println(payload_length);
-    Serial.print("Payload: "); Serial.println(payload_data);
+    Serial.print("Payload Length: "); Serial.println(payload_length,HEX);
     Serial.print("Received CRC: 0x"); Serial.println(received_crc, HEX);
     Serial.print("Calculated CRC: 0x"); Serial.println(calculated_crc, HEX);
+    Serial.print("ack: "); Serial.println(payload_data[0],BIN);*/
+    Serial.print("ack_sn: "); Serial.println(ack_Sn);
+    Serial.print("pure data: "); Serial.println(real_data);
+    
 	
 	
 }
@@ -111,6 +118,7 @@ void loop() {
 	if (calculated_crc == received_crc) {
       // Serial.println("CRC Verification: SUCCESS");
 		ack_Sn = ((payload_data[0]&0x01)^1);
+    print_data();
   }
   build_ack_packet();//should be ack with earlier sn
   //delay(1000);
