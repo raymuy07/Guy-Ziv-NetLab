@@ -120,7 +120,7 @@ void calc_efficency(){
   float D = 16;
   current_time = millis();
   unsigned long T = (current_time - zero_time)/1000;
-  float R = 10;
+  float R = 10000000;
   float efficency = (X*D)/(T*R);
     /*Serial.println("X: ");
   Serial.println(X);
@@ -131,7 +131,8 @@ void calc_efficency(){
     Serial.println("R: ");
   Serial.println(R);*/
   Serial.println("Efficency: ");
-  Serial.println(efficency);
+  Serial.print(efficency,9);
+  Serial.println();
 }
 
 void is_ack() {
@@ -154,25 +155,16 @@ void is_ack() {
     Serial.println(ack_sn);
     Serial.println(" sn_index: ");
     Serial.println(sn_index);*/
-	  Serial.println(" RTT (ms): ");
+	  Serial.println("RTT (ms): ");
     Serial.println(RTT);
-	  Serial.println(" average RTT (ms): ");
+	  Serial.println("average RTT (ms): ");
     Serial.println(average_RTT);
-	  Serial.println(" Eror propability: ");
+	  Serial.println("Eror propability: ");
     Serial.println(eror_prob);
     calc_efficency();
     if (ack_sn != sn_index) {  // Correct ACK received
-      
-      Serial.println("dataset_index before ++: ");
-      Serial.println(dataset_index);
-
       dataset_index++;
-      
-      Serial.println("dataset_index after ++: ");
-      Serial.println(dataset_index);
-
       if (dataset_index == 4){
-		Serial.println("Resetting dataset_index to 0.");
         dataset_index = 0;
       }
 
@@ -181,11 +173,6 @@ void is_ack() {
       strncpy(payload_data, dataset[dataset_index], payload_length-2);
       payload_data[payload_length-2] = '\0'; // Ensure null-termination
       sn_index ^= 0x01;      // Flip SN (0 -> 1, 1 -> 0)
-
-      Serial.println("dataset_index after changing payload_data: ");
-      Serial.println(dataset_index);
-
-    //it is the same packet but in case there will be more data...
     } else{ //bad ack recived
 		  bad_frames_counter++;
       /*Serial.println("wrong ACK received. bad_frames_counter: ");
