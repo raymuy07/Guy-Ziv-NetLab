@@ -38,8 +38,8 @@ void setup() {
   zero_time=millis();
   setAddress(TX, 10);   
   //Serial.println("Transmitter initialized.");
-  strncpy(payload_data, dataset[0], payload_length-1);
-  payload_data[payload_length-1] = '\0'; // Ensure null-termination
+  strncpy(payload_data, dataset[0], payload_length-2);
+  payload_data[payload_length-2] = '\0'; // Ensure null-termination
   build_packet();
   ref_time = millis();
 }
@@ -163,11 +163,14 @@ void is_ack() {
     calc_efficency();
     if (ack_sn != sn_index) {  // Correct ACK received
       
-      
-      Serial.println("dataset_index: ");
+      Serial.println("dataset_index before ++: ");
       Serial.println(dataset_index);
 
-      dataset_index = dataset_index+1;
+      dataset_index++;
+      
+      Serial.println("dataset_index after ++: ");
+      Serial.println(dataset_index);
+
       if (dataset_index == 4){
 		Serial.println("Resetting dataset_index to 0.");
         dataset_index = 0;
@@ -175,10 +178,13 @@ void is_ack() {
 
       //Serial.println("Correct ACK received. Sending next frame...");
 
-      strncpy(payload_data, dataset[dataset_index], payload_length-1);
-      payload_data[payload_length-1] = '\0'; // Ensure null-termination
+      strncpy(payload_data, dataset[dataset_index], payload_length-2);
+      payload_data[payload_length-2] = '\0'; // Ensure null-termination
       sn_index ^= 0x01;      // Flip SN (0 -> 1, 1 -> 0)
-          
+
+      Serial.println("dataset_index after changing payload_data: ");
+      Serial.println(dataset_index);
+
     //it is the same packet but in case there will be more data...
     } else{ //bad ack recived
 		  bad_frames_counter++;
