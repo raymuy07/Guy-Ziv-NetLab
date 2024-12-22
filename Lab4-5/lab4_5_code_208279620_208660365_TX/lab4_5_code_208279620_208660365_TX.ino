@@ -44,18 +44,32 @@ void setup() {
   //Serial.println("Transmitter initialized.");
   strncpy(payload_data, dataset[0], payload_length-2);
   payload_data[payload_length-2] = '\0'; // Ensure null-termination
-  build_packet();
   ref_time = millis();
   for (int i=0 ; i<window_size ; i++){ // creating window_index_list, initioate with 1, not 0!!
 	  window_index_list[i] = next_window_index++;
   }
-  Serial.println("window index init: ");
-  for (int i =0; i < window_size; i++){
-  Serial.println(window_index_list[i],HEX);
-  }
+  send_window();
 }
 
-
+void send_window(){                     //send the current window
+  for (int i=0; i<window_size; i++){
+    strncpy(payload_data, dataset[window_index_list[i]-1], payload_length-2);
+    payload_data[payload_length-2] = '\0'; // Ensure null-termination
+    build_packet();        // build next packet      
+    while (1){      
+      int result = sendPackage(send_buffer, sizeof(send_buffer));
+      //delay (10000);
+      if (result == 0) {
+          //Serial.println("Line busy. Retrying...");
+      } else {
+          //Serial.println("got ack, Packet sent successfully.");
+      start_RTT_measurment = millis();
+      total_frames_counter++;
+          break;
+      }
+    }
+  }
+}
 
 void build_packet(){
 	
@@ -108,19 +122,19 @@ void build_packet(){
 void is_time_out() {
 	
     current_time = millis();
-
     // timeout check
-    
 	if (current_time - ref_time >= time_out) {
+        send_window();
+        start_RTT_measurment = millis();
+        total_frames_counter++;
+        Serial.println("Timeout! Resending window...");
+        ref_time = millis();
+    /*
         int result = sendPackage(send_buffer, sizeof(send_buffer));
         if (result == 1) {
-            start_RTT_measurment = millis();
-            total_frames_counter++;
-            Serial.println("Timeout! Resending frame...");
-            Serial.println("Packet resent successfully.");
-            ref_time = millis();
+            
         }
-        
+     */   
     }
 }
 
@@ -154,17 +168,17 @@ if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of fir
       -adds the "next num" - var not existing yet. - done
       -resets if next_num reaches limit, our choice - done
      */
-     pop((char)window_index_list, ack_index);
+     pop(window_index_list, ack_index);
      window_index_list[window_size-1] = next_window_index; // add the sent packet expected ack     
      next_window_index++;
-     if (next_window_index == window_size*2){
+     if (next_window_index == dataset_length){
       next_window_index = 0;
      }
      // make sure window_index_list actualy changes:
-     Serial.println("window index list: ");
+     /*Serial.println("window index list: ");
      for (int i =0; i < window_size; i++){
       Serial.println(window_index_list[i],HEX);
-     }
+     }*/
      dataset_index++; // advance data index so next packet is sent.
       if (dataset_index == dataset_length){
         dataset_index = 0;
@@ -174,7 +188,20 @@ if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of fir
 
       strncpy(payload_data, dataset[dataset_index], payload_length-2);
       payload_data[payload_length-2] = '\0'; // Ensure null-termination
-      sn_index ^= 0x01;      // Flip SN (0 -> 1, 1 -> 0)
+      build_packet();        // build next packet      
+      while (1){      
+        int result = sendPackage(send_buffer, sizeof(send_buffer));
+        //delay (10000);
+        if (result == 0) {
+            //Serial.println("Line busy. Retrying...");
+        } else {
+            //Serial.println("got ack, Packet sent successfully.");
+        start_RTT_measurment = millis();
+        total_frames_counter++;
+            break;
+        }
+      }
+      ref_time = millis();   // Reset timer
     } 
     else{ //bad ack recived
       bad_frames_counter++;
@@ -231,7 +258,7 @@ void is_ack() {
     eror_prob = ((bad_frames_counter)/(total_frames_counter));
     ////////////
     //Serial.println(" ACK received ");
-	ack_sn = ack_buffer[4];  // Extract SN bit from ACK
+	  ack_sn = ack_buffer[4];  // Extract SN bit from ACK
     /*Serial.println(" ack_sn: ");
     Serial.println(ack_sn);
     Serial.println(" sn_index: ");
@@ -244,21 +271,6 @@ void is_ack() {
     Serial.println(eror_prob);
     calc_efficency();
     check_sn();
-
-    build_packet();        // build next packet
-    while (1){      
-      int result = sendPackage(send_buffer, sizeof(send_buffer));
-      //delay (10000);
-      if (result == 0) {
-          //Serial.println("Line busy. Retrying...");
-      } else {
-          //Serial.println("got ack, Packet sent successfully.");
-		  start_RTT_measurment = millis();
-		  total_frames_counter++;
-          break;
-      }
-    }
-    ref_time = millis();   // Reset timer
     received_ack = 0;
   }
 }
@@ -280,19 +292,7 @@ void testCRC(){
 
 void loop() {
 	
-	//is_time_out(); 
-  //is_ack();
+	is_time_out(); 
+  is_ack();
   //testCRC();  
-  delay(3000);
-  pop(window_index_list, 0);
-  window_index_list[window_size-1] = next_window_index; // add the sent packet expected ack
-  next_window_index++;
-     if (next_window_index == window_size*2){
-      next_window_index = 0;
-     }
-  // make sure window_index_list actualy changes:
-  Serial.println("window index list after add: ");
-  for (int i =0; i < window_size; i++){
-  Serial.println(window_index_list[i],HEX);
   }
-}
