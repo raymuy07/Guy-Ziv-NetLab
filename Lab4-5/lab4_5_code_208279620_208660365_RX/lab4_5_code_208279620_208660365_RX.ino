@@ -44,9 +44,9 @@ void extract_raw_data(uint8_t *raw_data){
 
 
 	destination_address = raw_data[0];
-    source_address = raw_data[1];
-    frame_type = raw_data[2];
-    payload_length = raw_data[3];
+  source_address = raw_data[1];
+  frame_type = raw_data[2];
+  payload_length = raw_data[3];
 
     
 	
@@ -57,7 +57,7 @@ void extract_raw_data(uint8_t *raw_data){
     memcpy(ack_data, &raw_data[4], 1);
     memcpy(real_data, &raw_data[5], payload_length-1);
     
-	payload_data[payload_length] = '\0'; // Null-terminate the payload string
+	  payload_data[payload_length] = '\0'; // Null-terminate the payload string
 
     // Extract CRC
     memcpy(&received_crc, &raw_data[4 + payload_length], 4);
@@ -72,6 +72,7 @@ void extract_raw_data(uint8_t *raw_data){
         //Serial.println("CRC Verification: SUCCESS");
 		
     } else {
+        Serial.println(calculated_crc,HEX);
         Serial.println("CRC Verification: FAILED");
         Serial.println("recived_CRC : ");
         Serial.println(received_crc,HEX);
@@ -112,8 +113,8 @@ void print_data(){
     Serial.print("ack: "); Serial.println(payload_data[0],BIN);*/
     
 	
-	Serial.print("ack_sn: "); Serial.println(ack_Sn);
-    Serial.print("pure data: "); Serial.println(real_data);
+	//Serial.print("ack_sn: "); Serial.println(ack_Sn);
+  //Serial.print("pure data: "); Serial.println(real_data);
     
 	
 	
@@ -121,10 +122,10 @@ void print_data(){
 
 void loop() {
 
-    
+    //Serial.println("in loop");
     // Check if a packet has been received
 	if (readPackage(receive_buffer, sizeof(receive_buffer))) {
-	
+	Serial.println("got packege");
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
     
@@ -166,7 +167,9 @@ void loop() {
         }
   Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);*/
 
-	}
+	}else{
+    //Serial.println("not recived");
+  }
 }
 
 

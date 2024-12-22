@@ -1,5 +1,5 @@
 #include "EthernetLab.h"
-#define window_size 3 //change window size from here
+#define window_size 1 //change window size from here
 
 
 // Guy code:
@@ -31,7 +31,7 @@ int ack_index=0;
 
 
 unsigned long ref_time, current_time;
-const unsigned long time_out = 2400; // average RTT about 2000ms, adding 1/5 of RTT
+const unsigned long time_out = 10000; // average RTT about 2000ms, adding 1/5 of RTT
 
 uint8_t send_buffer[25];  // 4 header + 16 payload + 4 CRC
 uint8_t ack_buffer[25];
@@ -62,12 +62,13 @@ void send_window(){                     //send the current window
       if (result == 0) {
           //Serial.println("Line busy. Retrying...");
       } else {
+        Serial.println("sent packet");
           //Serial.println("got ack, Packet sent successfully.");
       start_RTT_measurment = millis();
       total_frames_counter++;
           break;
       }
-    }
+    }delay(400);
   }
 }
 
