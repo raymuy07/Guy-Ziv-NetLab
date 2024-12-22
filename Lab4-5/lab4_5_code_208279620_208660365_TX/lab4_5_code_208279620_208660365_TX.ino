@@ -27,6 +27,9 @@ int dataset_index=0;
 ///
 
 char dataset[4][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv1234567","Ziv & Guy1234567"};
+
+int data_set_length = sizeof(dataset);
+
 char payload_data[16]= {0};
 uint8_t payload_length = 17;
 
@@ -42,11 +45,11 @@ uint8_t ack_buffer[25];
 
 
 //the new addition for GBN
-
-int window_size = 3;
+//should be as define above
+int window_size = 1;
 int s_frame_index = 0; 
 int i = 0;
-int f_frame_index = s_frame_index + window_size - 1; 
+int f_frame_index = window_size - 1; 
 
 
 
@@ -59,10 +62,6 @@ void setup() {
   setAddress(TX, 10);   
   //Serial.println("Transmitter initialized.");
   
-  
-  //Show ziv
-  build_packet(s_frame_index);
-
   
   ref_time = millis();
 }
@@ -86,7 +85,7 @@ void build_packet(int index){
 	///Moving the payload_length three times and then anding with 7.
 
 	
-	ack_sn_data = (payload_length << 3) | (sn_index & 0x07);
+	ack_sn_data = (payload_length << 3) | (index & 0x07);
 	
 	send_buffer[4] = ack_sn_data;	
 	
@@ -124,7 +123,7 @@ void is_time_out() {
 		build_packet(i);        // build packet in window
 
 
-		while (i <= f_frame){
+		while (i <= f_frame_index){
 
 			int result = sendPackage(send_buffer, sizeof(send_buffer));
         
@@ -140,6 +139,8 @@ void is_time_out() {
 				Serial.println("Timeout! Resending frame...");
 				Serial.println("Packet resent successfully.");
 				ref_time = millis();
+				
+				delay(400);
 			}
 			
 		}
@@ -182,20 +183,26 @@ void is_ack() {
     
 	
 	// Correct ACK received its only one above sn_index
-	if (ack_sn - sn_index == 1) {  
+	if (ack_sn - s_frame_index == 1) {  
       
 	  
 	  //lets increase the indexes and the move the frame one step right.
 	  
 	  s_frame_index++;	
 	  f_frame_index++;
-      sn_index ++; 
 	  
 	  
-	  //need ziv review 
-	  if (s_frame_index == 4){
+	  if (f_frame_index == data_set_length){
+		  f_frame_index = data_set_length - 1;
+	  }
+	  
+	  //This is the reset button
+	  if (s_frame_index > f_frame_index){
 		  
         s_frame_index = 0;
+		f_frame_index = window_size - 1; 
+		return;
+		
 	  }
 
 
@@ -203,7 +210,7 @@ void is_ack() {
 		//Send the next packet immidaitly.
 		
 		
-			build_packet(sn_index);  
+			build_packet(s_frame_index);  
 			while (1){  
 
 			
@@ -216,19 +223,20 @@ void is_ack() {
 				  total_frames_counter++;
 				  break;
 				 
+				}
 			}
 
+	
+	
+	ref_time = millis();   // Reset timer
 
 	//In case bad ack recived.
-	} 
+	}	
 	else{ 
 		  bad_frames_counter++;
 	  }
     
 	
-	
-	
-    ref_time = millis();   // Reset timer
     received_ack = 0;
   
   }
@@ -289,7 +297,8 @@ void testCRC(){
 void loop() {
 	
 	
-is_time_out(); 
-  is_ack();
+	is_time_out();
+	is_ack();
+
 
 }

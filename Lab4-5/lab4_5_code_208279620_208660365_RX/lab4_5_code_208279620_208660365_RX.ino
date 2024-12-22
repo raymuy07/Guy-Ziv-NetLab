@@ -7,7 +7,7 @@ uint8_t destination_address;
 uint8_t source_address;
 uint8_t frame_type;
 uint8_t payload_length;
-
+int expected_ack=0;
 uint8_t ack_data;
 
 // we know the packet is with fixed size.
@@ -128,13 +128,14 @@ void loop() {
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
     
-	// Serial.println("CRC Verification: SUCCESS");
-
-	ack_number = (ack_data & 0x07);
-    ack_number ++;
-	if (ack_number == 7){
-		
-	ack_number = 0;
+		// Serial.println("CRC Verification: SUCCESS");
+		if((ack_data & 0x07)==expected_ack){
+		ack_number = (ack_data & 0x07);
+		ack_number ++;
+		if (ack_number == 7){
+			
+		ack_number = 0;
+		}
 	}
 	print_data();
   
