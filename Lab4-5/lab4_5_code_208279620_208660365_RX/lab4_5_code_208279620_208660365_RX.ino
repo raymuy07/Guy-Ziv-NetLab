@@ -7,20 +7,29 @@ uint8_t destination_address;
 uint8_t source_address;
 uint8_t frame_type;
 uint8_t payload_length;
+
+uint8_t ack_data;
+
 // we know the packet is with fixed size.
+
 uint8_t receive_buffer[25];  // 24 bytes: 4 header + 16 payload + 4 CRC
+
+
 char payload_data[17];     // Buffer for payload data
-char ack_data[1];
 char real_data[16];
+
 char packets_buffer[250];
+
 unsigned long received_crc;  // Received CRC
 unsigned long calculated_crc; // Calculated CRC
 uint8_t send_buffer[25];  // 4 header + 17 payload + 4 CRC
+
 uint8_t ack_destination_address = 0x1A;
 uint8_t ack_source_address = 0x0A; 
 uint8_t ack_frame_type = 0;
 uint8_t ack_payload_length = 17;
-int ack_Sn=0;
+
+uint8_t ack_number = 0;
 
 void setup() {
 	
@@ -37,14 +46,18 @@ void extract_raw_data(uint8_t *raw_data){
 	destination_address = raw_data[0];
     source_address = raw_data[1];
     frame_type = raw_data[2];
-    payload_length = raw_data[3];//SHOULD BE 17
+    payload_length = raw_data[3];
 
-    // Copy payload and ensure null-termination
+    
+	
+	// Copy payload and ensure null-termination
     memset(payload_data, 0, sizeof(payload_data));  // Clear payload buffer
-    ack_data[0] = raw_data[4];
-    memcpy(payload_data, &raw_data[4], payload_length);
+    
+
+    memcpy(ack_data, &raw_data[4], 1);
     memcpy(real_data, &raw_data[5], payload_length-1);
-    payload_data[payload_length] = '\0'; // Null-terminate the payload string
+    
+	payload_data[payload_length] = '\0'; // Null-terminate the payload string
 
     // Extract CRC
     memcpy(&received_crc, &raw_data[4 + payload_length], 4);
@@ -74,7 +87,7 @@ void build_ack_packet(){
   send_buffer[1] = ack_source_address;                        // Source address
   send_buffer[2] = ack_frame_type;                        	// Frame type (0)
   send_buffer[3] = ack_payload_length;                        // Payload length (fixed 16 bytes)
-  send_buffer[4] = ack_Sn;     
+  send_buffer[4] = ack_number;     
 	memcpy(&send_buffer[5], 0, payload_length-1);
 	
 	unsigned long crc = calculateCRC(&send_buffer[0], 21);
@@ -86,6 +99,8 @@ void build_ack_packet(){
 
 
 void print_data(){
+	
+	
 	/*
     Serial.println("Packet Received:");
     Serial.print("Destination Address: 0x"); Serial.println(destination_address, HEX);
@@ -95,7 +110,9 @@ void print_data(){
     Serial.print("Received CRC: 0x"); Serial.println(received_crc, HEX);
     Serial.print("Calculated CRC: 0x"); Serial.println(calculated_crc, HEX);
     Serial.print("ack: "); Serial.println(payload_data[0],BIN);*/
-    Serial.print("ack_sn: "); Serial.println(ack_Sn);
+    
+	
+	Serial.print("ack_sn: "); Serial.println(ack_Sn);
     Serial.print("pure data: "); Serial.println(real_data);
     
 	
@@ -107,21 +124,24 @@ void loop() {
     
     // Check if a packet has been received
 	if (readPackage(receive_buffer, sizeof(receive_buffer))) {
-	  //delay(100);
-    /*Serial.println("Raw Data Received:");
-        for (int i = 0; i < 25; i++) {
-            Serial.print(receive_buffer[i], HEX);
-            Serial.print(" ");
-        }*/
 	
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
-      // Serial.println("CRC Verification: SUCCESS");
-		ack_Sn = ((payload_data[0]&0x01)^1);
-    print_data();
+    
+	// Serial.println("CRC Verification: SUCCESS");
+
+	ack_number = (ack_data & 0x07);
+    ack_number ++;
+	if (ack_number == 7){
+		
+	ack_number = 0;
+	}
+	print_data();
+  
+  
   }
+
   build_ack_packet();//should be ack with earlier sn
-  //delay(1000);
   
 
   while (1){      
