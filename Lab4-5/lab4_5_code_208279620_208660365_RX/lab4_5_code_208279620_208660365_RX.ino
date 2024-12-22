@@ -1,5 +1,5 @@
 #include "EthernetLab.h"
-
+#define window_size 3 //change window size from here
 
 //Guy code:
 
