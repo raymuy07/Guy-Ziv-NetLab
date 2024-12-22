@@ -15,13 +15,20 @@ int RTT_counter=0;
 float bad_frames_counter=0;
 float total_frames_counter=0;
 float eror_prob;
+
+
+
 uint8_t sn_index = 0;                        // Sequence number of frame
 uint8_t rn_index = 0;                        // Received ACK number
 uint8_t ack_sn_data = 0x00;                  // Field combining ACK/DATA and SN
+
+
 unsigned long zero_time=0;
 int dataset_index=0;
 char dataset[][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv123456","Ziv & Guy123456","123456789012345","161514131298765","ThisIs a mesage"};
 char payload_data[16]= {0};
+
+
 const int dataset_length = sizeof(dataset); // might need to move
 char window_index_list[dataset_length]={0};
 uint8_t payload_length = 17;
@@ -39,17 +46,33 @@ uint8_t ack_buffer[25];
 
 
 void setup() {
+	
+	
   zero_time=millis();
+
   setAddress(TX, 10);   
-  //Serial.println("Transmitter initialized.");
+
+  
+  
   strncpy(payload_data, dataset[0], payload_length-2);
   payload_data[payload_length-2] = '\0'; // Ensure null-termination
   ref_time = millis();
+
+
+
+/*
   for (int i=0 ; i<window_size ; i++){ // creating window_index_list, initioate with 1, not 0!!
 	  window_index_list[i] = next_window_index++;
   }
+
   send_window();
+*/
+
+
+
 }
+
+
 
 void send_window(){                     //send the current window
   for (int i=0; i<window_size; i++){
@@ -75,46 +98,40 @@ void build_packet(){
 	
     
 	memset(send_buffer, 0, sizeof(send_buffer));  // Clear buffer
-  //Serial.println("send_buffer should be zero: ");
-  /*for( int i=0; i<25 ; i++){
-    Serial.println(send_buffer[i], HEX);
-    Serial.println(" ");
-  }*/
+ 
+	
+	
 	send_buffer[0] = destination_address;                   // Destination address
     send_buffer[1] = source_address;                        // Source address
     send_buffer[2] = frame_type;                        	// Frame type (0)
     send_buffer[3] = payload_length;                        // Payload length (fixed 16 bytes)
 	
 	
-	///Here I need to shift the size to the left
+		///Here I need to shift the size to the left
 
-	//ack_sn_data = (payload_length << 1) | (sn_index & 0x01);
-  ack_sn_data = sn_index; //removing the data length information, cant see how can be both ack and data length.
-	send_buffer[4] = ack_sn_data;	
+		//ack_sn_data = (payload_length << 1) | (sn_index & 0x01);
+	  
 	
+	ack_sn_data = sn_index; //removing the data length information, cant see how can be both ack and data length.
+	send_buffer[4] = ack_sn_data;	
 	
     memcpy(&send_buffer[5], payload_data, payload_length-1);     
 	
 	
 	unsigned long crc = calculateCRC(&send_buffer[0], 21);//create CRC
- /* Serial.println("send_buffer calcing crc: ");
- for( int i=0; i<25 ; i++){
-    Serial.println(send_buffer[i], HEX);
-    Serial.println(" ");
-  }*/
-  //Serial.println("crc: ");
-  //Serial.println(crc, HEX);
+ 
+ 
+				 /* Serial.println("send_buffer calcing crc: ");
+				 for( int i=0; i<25 ; i++){
+					Serial.println(send_buffer[i], HEX);
+					Serial.println(" ");
+				  }*/
+				  //Serial.println("crc: ");
+				  //Serial.println(crc, HEX);
+	
+	
 	memcpy(&send_buffer[5 + payload_length-1], &crc, 4);     // copy CRC 
 	
-	
-	/* DEBUG
-	Serial.println("Serialized Buffer on TX:");
-	for (int i = 0; i < 25; i++) {
-    Serial.print(send_buffer[i], HEX);
-    Serial.print("/.n");
-    Serial.println(" ");
-	}	*/
-
 	
 }
 
@@ -123,18 +140,25 @@ void is_time_out() {
 	
     current_time = millis();
     // timeout check
+
 	if (current_time - ref_time >= time_out) {
-        send_window();
-        start_RTT_measurment = millis();
+        
+		
+		//send_window();
+        
+		start_RTT_measurment = millis();
         total_frames_counter++;
-        Serial.println("Timeout! Resending window...");
+
         ref_time = millis();
+
+
     /*
         int result = sendPackage(send_buffer, sizeof(send_buffer));
         if (result == 1) {
             
         }
      */   
+
     }
 }
 
@@ -145,7 +169,9 @@ void calc_efficency(){
   unsigned long T = (current_time - zero_time)/1000;
   float R = 10000000;
   float efficency = (X*D)/(T*R);
-    /*Serial.println("X: ");
+    
+	
+	/*Serial.println("X: ");
   Serial.println(X);
     Serial.println("T: ");
   Serial.println(T);
@@ -158,6 +184,13 @@ void calc_efficency(){
   Serial.println();
   Serial.println("----------------------------------------------------");
 }
+
+
+
+
+
+
+/*
 void check_sn(){
 
 if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of first packet only - Correct ACK received
@@ -167,7 +200,7 @@ if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of fir
       -shifts all the rest of the nums, that way the oldest one is at window_index_list[0]// done inside of pop()
       -adds the "next num" - var not existing yet. - done
       -resets if next_num reaches limit, our choice - done
-     */
+     
      pop(window_index_list, ack_index);
      window_index_list[window_size-1] = next_window_index; // add the sent packet expected ack     
      next_window_index++;
@@ -178,7 +211,7 @@ if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of fir
      /*Serial.println("window index list: ");
      for (int i =0; i < window_size; i++){
       Serial.println(window_index_list[i],HEX);
-     }*/
+     }
      dataset_index++; // advance data index so next packet is sent.
       if (dataset_index == dataset_length){
         dataset_index = 0;
@@ -208,9 +241,12 @@ if (ack_index = index_of(ack_sn,(int *)window_index_list) == 0) {  // ack of fir
       /*Serial.println("wrong ACK received. bad_frames_counter: ");
       Serial.println(bad_frames_counter);
       Serial.println("total_frames_counter: ");
-      Serial.println(total_frames_counter);*/
+      Serial.println(total_frames_counter);
     }
 }
+
+
+
 
 
 int index_of(int value, int *list) {
@@ -233,7 +269,7 @@ bool is_in_list(int var, char list){
   }
   return in_list_flag;
 }
-*/
+
 
 void pop(char* list, int index){
   for (int i=index;i < window_size; i++){
@@ -243,39 +279,59 @@ void pop(char* list, int index){
 }
 
 
+*/
+
 void is_ack() {
 	
 	
     bool received_ack = readPackage(ack_buffer, sizeof(ack_buffer));
     
 	if (received_ack) {
-    ref_time = millis();
-    //RTT and eror propability calculations
+    
+	
+	ref_time = millis();
+    
+	
+	//RTT and eror propability calculations
     stop_RTT_measurment = millis();
     RTT = (stop_RTT_measurment - start_RTT_measurment);
     average_RTT = ((average_RTT*RTT_counter)+RTT)/(RTT_counter+1);
     RTT_counter++;
     eror_prob = ((bad_frames_counter)/(total_frames_counter));
-    ////////////
+    
+	
+	
+	////////////
     //Serial.println(" ACK received ");
 	  ack_sn = ack_buffer[4];  // Extract SN bit from ACK
-    /*Serial.println(" ack_sn: ");
+    
+	
+	/*Serial.println(" ack_sn: ");
     Serial.println(ack_sn);
     Serial.println(" sn_index: ");
     Serial.println(sn_index);*/
-	  Serial.println("RTT (ms): ");
+	
+	Serial.println("RTT (ms): ");
     Serial.println(RTT);
-	  Serial.println("average RTT (ms): ");
+	Serial.println("average RTT (ms): ");
     Serial.println(average_RTT);
 	  Serial.println("Eror propability: ");
     Serial.println(eror_prob);
     calc_efficency();
-    check_sn();
-    received_ack = 0;
+    
+	
+	//check_sn();
+    
+	
+	
+	received_ack = 0;
   }
 }
 
 void testCRC(){
+  
+  
+  
   char testString[] = {"Leiba & Zaidman"};
   char frame[10] = {0};
   for (int i =0; i<6; i++){
@@ -286,13 +342,21 @@ void testCRC(){
   Serial.println(crc_test, HEX);
   delay(10000);
 
+
+
 }
 
 
 
 void loop() {
 	
-	is_time_out(); 
+  is_time_out(); 
   is_ack();
+  
+  
+  
   //testCRC();  
+  
+  
+  
   }

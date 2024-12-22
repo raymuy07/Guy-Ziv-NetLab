@@ -112,7 +112,7 @@ void print_data(){
     Serial.print("ack: "); Serial.println(payload_data[0],BIN);*/
     
 	
-	Serial.print("ack_sn: "); Serial.println(ack_Sn);
+	//Serial.print("ack_sn: "); Serial.println(ack_Sn);
     Serial.print("pure data: "); Serial.println(real_data);
     
 	
