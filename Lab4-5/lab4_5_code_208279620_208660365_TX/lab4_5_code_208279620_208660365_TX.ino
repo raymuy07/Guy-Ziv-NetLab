@@ -26,7 +26,7 @@ unsigned long zero_time=0;
 int dataset_index=0;
 ///
 
-char dataset[4][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv1234567","Ziv & Guy1234567"};
+char dataset[][16] = {"Leiba & Zaidman","Zaidman & Leiba","Guy & Ziv123456","Ziv & Guy123456","Ziv & Guy654321","Ziv & Guy678909","Guy123456 & Ziv", "Guy 123456& Ziv" };
 
 int data_set_length = sizeof(dataset);
 
@@ -46,7 +46,7 @@ uint8_t ack_buffer[25];
 
 //the new addition for GBN
 //should be as define above
-int window_size = 1;
+int window_size = 2;
 int s_frame_index = 0; 
 int i = 0;
 int f_frame_index = window_size - 1; 
@@ -124,7 +124,7 @@ void is_time_out() {
 
 
 		while (i <= f_frame_index){
-
+			start_RTT_measurment = millis();
 			int result = sendPackage(send_buffer, sizeof(send_buffer));
         
 		
@@ -134,7 +134,7 @@ void is_time_out() {
 				
 				build_packet(i);        // build next packet in window
 
-				start_RTT_measurment = millis();
+
 				total_frames_counter++;
 				Serial.println("Timeout! Resending frame...");
 				Serial.println("Packet resent successfully.");
@@ -170,8 +170,9 @@ void is_ack() {
 		uint8_t ack_sn = ack_buffer[4] & 0x07;  // Extract SN bit from ACK
 
 
-	  
-	Serial.println("RTT (ms): ");
+	  Serial.println("ack_sn: ");
+    Serial.println(ack_sn);
+	  Serial.println("RTT (ms): ");
     Serial.println(RTT);
 	  Serial.println("average RTT (ms): ");
     Serial.println(average_RTT);
@@ -181,9 +182,14 @@ void is_ack() {
 	
 	calc_efficency();
     
-	
+	if (s_frame_index-ack_sn==7){
+  
+        s_frame_index = 0;
+		f_frame_index = window_size - 1; 
+		return;
+  }
 	// Correct ACK received its only one above sn_index
-	if (ack_sn - s_frame_index == 1) {  
+	if ((ack_sn - s_frame_index == 1)) {  
       
 	  
 	  //lets increase the indexes and the move the frame one step right.
@@ -232,7 +238,7 @@ void is_ack() {
 
 	//In case bad ack recived.
 	}	
-	else{ 
+	else { 
 		  bad_frames_counter++;
 	  }
     

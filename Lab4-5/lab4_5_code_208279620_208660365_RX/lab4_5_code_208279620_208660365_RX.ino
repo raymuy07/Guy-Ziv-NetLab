@@ -10,7 +10,6 @@ uint8_t payload_length;
 // we know the packet is with fixed size.
 uint8_t receive_buffer[25];  // 24 bytes: 4 header + 16 payload + 4 CRC
 char payload_data[17];     // Buffer for payload data
-char ack_data[1];
 char real_data[16];
 char packets_buffer[250];
 unsigned long received_crc;  // Received CRC
@@ -41,7 +40,6 @@ void extract_raw_data(uint8_t *raw_data){
 
     // Copy payload and ensure null-termination
     memset(payload_data, 0, sizeof(payload_data));  // Clear payload buffer
-    ack_data[0] = raw_data[4];
     memcpy(payload_data, &raw_data[4], payload_length);
     memcpy(real_data, &raw_data[5], payload_length-1);
     payload_data[payload_length] = '\0'; // Null-terminate the payload string
@@ -117,7 +115,10 @@ void loop() {
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
       // Serial.println("CRC Verification: SUCCESS");
-		ack_Sn = ((payload_data[0]&0x01)^1);
+		ack_Sn = ((payload_data[0]&0x07)+1);
+    if (ack_Sn == 8){
+      ack_Sn = 0;
+    }
     print_data();
   }
   build_ack_packet();//should be ack with earlier sn
