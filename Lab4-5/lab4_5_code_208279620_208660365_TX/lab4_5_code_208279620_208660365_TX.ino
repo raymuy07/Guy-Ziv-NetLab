@@ -35,7 +35,7 @@ uint8_t payload_length = 17;
 
 
 unsigned long ref_time, current_time;
-const unsigned long time_out = 10000;         // timeout duration in ms
+const unsigned long time_out = 2200;         // timeout duration in ms
 
 uint8_t send_buffer[25];  // 4 header + 16 payload + 4 CRC
 uint8_t ack_buffer[25];
@@ -140,7 +140,7 @@ void is_time_out() {
 				Serial.println("Packet resent successfully.");
 				ref_time = millis();
 				
-				delay(400);
+				//delay(400);//need to kick?
 			}
 			
 		}

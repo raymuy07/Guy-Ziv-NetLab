@@ -20,7 +20,8 @@ uint8_t ack_source_address = 0x0A;
 uint8_t ack_frame_type = 0;
 uint8_t ack_payload_length = 17;
 int ack_Sn=0;
-
+int pre_ack_sn = -1 ;
+int send_ack_flag = 1;
 void setup() {
 	
 	setAddress(RX,10);  
@@ -115,12 +116,33 @@ void loop() {
 	extract_raw_data(receive_buffer);
 	if (calculated_crc == received_crc) {
       // Serial.println("CRC Verification: SUCCESS");
-		ack_Sn = ((payload_data[0]&0x07)+1);
+    /*int rec_packet_num = (payload_data[0]&0x07);
+		
+    //this means that the sending sequence started.
+    if (rec_packet_num == 0){
+    
+    send_ack_num = rec_packet_num+1;
+
+    }
+    // this should stop sending duplicate acks.
+    if (send_ack_num == rec_packet_num){
+
+      
+    }*/
+    ack_Sn = ((payload_data[0]&0x07)+1);
     if (ack_Sn == 8){
       ack_Sn = 0;
     }
+    
+    if (ack_Sn != pre_ack_sn){
+      pre_ack_sn = ack_Sn;
+    } else{
+      //pre_ack_sn = ack_Sn;
+      send_ack_flag = 0;
+    }
     print_data();
   }
+  if (send_ack_flag){
   build_ack_packet();//should be ack with earlier sn
   //delay(1000);
   
@@ -135,7 +157,7 @@ void loop() {
             break;
         }
   }
-  
+} send_ack_flag =1;
   //Serial.print("sent ACK sn: "); Serial.println(ack_Sn, HEX);
   /*int sent = sendPackage(send_buffer, 25);
   //delay(100);
