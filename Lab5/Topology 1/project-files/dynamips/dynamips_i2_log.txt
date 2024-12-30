@@ -1,0 +1,47 @@
+Dec 27 16:37:08.586 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Dec 27 16:37:08.587 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 55035.
+Dec 27 16:37:09.006 HYPERVISOR: exec_cmd: hypervisor version 
+Dec 27 16:37:09.006 HYPERVISOR: exec_cmd: hypervisor uuid 
+Dec 27 16:37:09.007 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\zivza\GNS3\projects\Topology 1\project-files\dynamips 
+Dec 27 16:37:09.007 GENERAL: working_dir=C:\Users\zivza\GNS3\projects\Topology 1\project-files\dynamips
+Dec 27 16:37:09.007 HYPERVISOR: exec_cmd: vm create AUTOIDLEPC 1 c3745 
+Dec 27 16:37:09.008 VM: VM AUTOIDLEPC created.
+Dec 27 16:37:09.010 HYPERVISOR: exec_cmd: vm set_con_tcp_port AUTOIDLEPC 2012 
+Dec 27 16:37:09.010 HYPERVISOR: exec_cmd: c3745 get_mac_addr AUTOIDLEPC 
+Dec 27 16:37:09.010 HYPERVISOR: exec_cmd: vm set_ram AUTOIDLEPC 256 
+Dec 27 16:37:09.011 HYPERVISOR: exec_cmd: vm set_ios AUTOIDLEPC C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Dec 27 16:37:09.011 HYPERVISOR: exec_cmd: vm create Ghost 0 c3745 
+Dec 27 16:37:09.012 VM: VM Ghost created.
+Dec 27 16:37:09.012 HYPERVISOR: exec_cmd: vm set_ios Ghost C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Dec 27 16:37:09.013 HYPERVISOR: exec_cmd: vm set_ghost_status Ghost 1 
+Dec 27 16:37:09.013 HYPERVISOR: exec_cmd: vm set_ghost_file Ghost c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Dec 27 16:37:09.013 HYPERVISOR: exec_cmd: vm set_ram Ghost 256 
+Dec 27 16:37:09.013 HYPERVISOR: exec_cmd: vm get_status Ghost 
+Dec 27 16:37:09.022 HYPERVISOR: exec_cmd: vm start Ghost 
+Dec 27 16:37:09.370 HYPERVISOR: exec_cmd: vm get_status Ghost 
+Dec 27 16:37:09.370 HYPERVISOR: exec_cmd: vm stop Ghost 
+Dec 27 16:37:09.485 VM: VM Ghost shutdown.
+Dec 27 16:37:09.486 HYPERVISOR: exec_cmd: vm clean_delete Ghost 
+Dec 27 16:37:09.486 VM: VM Ghost destroyed.
+Dec 27 16:37:09.496 HYPERVISOR: exec_cmd: vm set_ghost_status AUTOIDLEPC 2 
+Dec 27 16:37:09.496 HYPERVISOR: exec_cmd: vm set_ghost_file AUTOIDLEPC c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Dec 27 16:37:09.520 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:09.520 HYPERVISOR: exec_cmd: vm set_idle_pc AUTOIDLEPC 0x0 
+Dec 27 16:37:09.521 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:09.521 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:09.521 HYPERVISOR: exec_cmd: vm start AUTOIDLEPC 
+Dec 27 16:37:29.813 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:29.814 HYPERVISOR: exec_cmd: vm get_idle_pc_prop AUTOIDLEPC 0 
+Dec 27 16:37:40.357 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:40.357 HYPERVISOR: exec_cmd: vm set_idle_pc_online AUTOIDLEPC 0 0x60ba18a8 
+Dec 27 16:37:40.358 HYPERVISOR: exec_cmd: vm cpu_usage AUTOIDLEPC 0 
+Dec 27 16:37:43.346 HYPERVISOR: exec_cmd: vm cpu_usage AUTOIDLEPC 0 
+Dec 27 16:37:43.346 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:43.346 HYPERVISOR: exec_cmd: vm stop AUTOIDLEPC 
+Dec 27 16:37:43.464 VM: VM AUTOIDLEPC shutdown.
+Dec 27 16:37:43.470 HYPERVISOR: exec_cmd: vm get_status AUTOIDLEPC 
+Dec 27 16:37:43.471 HYPERVISOR: exec_cmd: vm delete AUTOIDLEPC 
+Dec 27 16:37:43.471 VM: VM AUTOIDLEPC destroyed.
+Dec 27 16:37:43.472 HYPERVISOR: exec_cmd: hypervisor stop 
+Dec 27 16:37:43.543 HYPERVISOR: Stopped.
+Dec 27 16:37:43.543 GENERAL: reset done.

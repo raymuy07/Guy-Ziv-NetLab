@@ -1,0 +1,53 @@
+Dec 29 17:25:15.283 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Dec 29 17:25:15.283 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 62055.
+Dec 29 17:25:15.357 HYPERVISOR: exec_cmd: hypervisor version 
+Dec 29 17:25:15.358 HYPERVISOR: exec_cmd: hypervisor uuid 
+Dec 29 17:25:15.358 HYPERVISOR: exec_cmd: hypervisor working_dir C:/Users/zivza/GNS3/projects/Topology 6 - part 15\project-files\dynamips 
+Dec 29 17:25:15.358 GENERAL: working_dir=C:/Users/zivza/GNS3/projects/Topology 6 - part 15\project-files\dynamips
+Dec 29 17:25:15.358 HYPERVISOR: exec_cmd: vm create R2 2 c3745 
+Dec 29 17:25:15.364 VM: VM R2 created.
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: vm set_con_tcp_port R2 2004 
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: c3745 get_mac_addr R2 
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: c3745 set_mac_addr R2 c402.10b8.0000 
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: vm set_nvram R2 256 
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:15.364 HYPERVISOR: exec_cmd: vm set_idle_pc R2 0x60ba18a8 
+Dec 29 17:25:15.375 HYPERVISOR: exec_cmd: vm set_ram R2 256 
+Dec 29 17:25:15.375 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:15.376 HYPERVISOR: exec_cmd: vm slot_add_binding R2 3 0 NM-1FE-TX 
+Dec 29 17:25:15.377 HYPERVISOR: exec_cmd: vm set_exec_area R2 64 
+Dec 29 17:25:15.378 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:15.379 HYPERVISOR: exec_cmd: vm slot_add_binding R2 2 0 NM-1FE-TX 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm set_ios R2 C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm slot_add_binding R2 1 0 NM-1FE-TX 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm set_disk0 R2 0 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:15.382 HYPERVISOR: exec_cmd: vm slot_add_binding R2 4 0 NM-1FE-TX 
+Dec 29 17:25:15.394 HYPERVISOR: exec_cmd: vm set_config R2 configs/i2_startup-config.cfg 
+Dec 29 17:25:15.948 HYPERVISOR: exec_cmd: vm set_ghost_status R2 2 
+Dec 29 17:25:15.948 HYPERVISOR: exec_cmd: vm set_ghost_file R2 c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Dec 29 17:25:16.455 HYPERVISOR: exec_cmd: nio create_udp udp-416d83d4-cd7b-4369-aba6-09ad95a34601 10003 127.0.0.1 10002 
+Dec 29 17:25:16.471 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R2 2 0 udp-416d83d4-cd7b-4369-aba6-09ad95a34601 
+Dec 29 17:25:16.471 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:16.497 HYPERVISOR: exec_cmd: nio create_udp udp-45494509-21d6-4844-a5b1-8eda227cb8cf 10004 127.0.0.1 10005 
+Dec 29 17:25:16.497 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R2 1 0 udp-45494509-21d6-4844-a5b1-8eda227cb8cf 
+Dec 29 17:25:16.497 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:17.011 HYPERVISOR: exec_cmd: nio create_udp udp-64288cd9-1d10-4d71-b6e1-09705936943c 10017 127.0.0.1 10016 
+Dec 29 17:25:17.011 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R2 3 0 udp-64288cd9-1d10-4d71-b6e1-09705936943c 
+Dec 29 17:25:17.033 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:25:17.094 HYPERVISOR: exec_cmd: nio create_udp udp-4cf29905-d06a-4f9f-b281-de11a4b95c26 10018 127.0.0.1 10019 
+Dec 29 17:25:17.129 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R2 0 0 udp-4cf29905-d06a-4f9f-b281-de11a4b95c26 
+Dec 29 17:25:17.134 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:30:54.600 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:30:54.600 HYPERVISOR: exec_cmd: vm start R2 
+Dec 29 17:31:22.728 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:31:22.728 HYPERVISOR: exec_cmd: vm stop R2 
+Dec 29 17:31:22.996 VM: VM R2 shutdown.
+Dec 29 17:31:24.778 HYPERVISOR: exec_cmd: vm get_status R2 
+Dec 29 17:31:24.778 HYPERVISOR: exec_cmd: vm extract_config R2 
+Dec 29 17:31:24.788 HYPERVISOR: exec_cmd: vm delete R2 
+Dec 29 17:31:24.788 VM: VM R2 destroyed.
+Dec 29 17:31:24.788 HYPERVISOR: exec_cmd: hypervisor stop 
+Dec 29 17:31:24.930 HYPERVISOR: Stopped.
+Dec 29 17:31:24.930 GENERAL: reset done.
