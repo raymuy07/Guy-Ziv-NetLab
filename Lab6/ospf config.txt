@@ -1,0 +1,96 @@
+----ospf------
+R4
+
+configure terminal
+router ospf 1
+router-id 10.0.0.4
+network 10.0.0.0 0.0.255.255 area 1
+end
+write
+
+R5
+
+configure terminal
+router ospf 1
+router-id 10.0.0.5
+network 10.0.0.0 0.0.255.255 area 1
+end
+write
+
+R8
+
+configure terminal
+router ospf 1
+router-id 10.0.0.8
+network 10.0.0.0 0.0.255.255 area 2
+end
+write
+
+R1
+
+configure terminal
+router ospf 1
+router-id 10.0.0.1
+network 10.0.0.0 0.0.255.255 area 2
+end
+write
+
+
+----ospf border------
+
+R3
+
+configure terminal
+router ospf 1
+router-id 10.0.0.3
+network 10.0.3.0 0.0.0.255 area 1
+network 10.0.2.0 0.0.0.255 area 0
+network 10.0.7.0 0.0.0.255 area 0
+end
+write
+
+R6
+
+configure terminal
+router ospf 1
+router-id 10.0.0.6
+network 10.0.4.0 0.0.0.255 area 1
+network 10.0.5.0 0.0.0.255 area 0
+network 10.0.7.0 0.0.0.255 area 0
+end
+write
+
+R7
+
+configure terminal
+router ospf 1
+router-id 10.0.0.7
+network 10.0.8.0 0.0.0.255 area 2
+network 10.0.5.0 0.0.0.255 area 0
+network 10.0.6.0 0.0.0.255 area 0
+end
+write
+
+R2
+
+configure terminal
+router ospf 1
+router-id 10.0.0.2
+network 10.0.10.0 0.0.0.255 area 2
+network 10.0.1.0 0.0.0.255 area 2
+network 10.0.2.0 0.0.0.255 area 0
+network 10.0.6.0 0.0.0.255 area 0
+end
+write
+
+----passiv interface--
+
+configure terminal
+router ospf 1
+network 192.3.2.0 0.0.0.255 area 1
+passive-interface FastEthernet 0/0
+interface FastEthernet 0/0
+ip address 192.3.2.254 255.255.255.0
+no shutdown
+end
+write

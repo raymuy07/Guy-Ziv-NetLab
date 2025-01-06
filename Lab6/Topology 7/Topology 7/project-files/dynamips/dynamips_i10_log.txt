@@ -1,0 +1,59 @@
+Jan 02 16:14:46.125 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Jan 02 16:14:46.125 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 63702.
+Jan 02 16:14:46.173 HYPERVISOR: exec_cmd: hypervisor version 
+Jan 02 16:14:46.174 HYPERVISOR: exec_cmd: hypervisor uuid 
+Jan 02 16:14:46.175 HYPERVISOR: exec_cmd: hypervisor working_dir C:/Users/zivza/GNS3/projects/Topology 7\project-files\dynamips 
+Jan 02 16:14:46.182 GENERAL: working_dir=C:/Users/zivza/GNS3/projects/Topology 7\project-files\dynamips
+Jan 02 16:14:46.183 HYPERVISOR: exec_cmd: vm create R4 4 c3745 
+Jan 02 16:14:46.184 VM: VM R4 created.
+Jan 02 16:14:46.191 HYPERVISOR: exec_cmd: vm set_con_tcp_port R4 2005 
+Jan 02 16:14:46.211 HYPERVISOR: exec_cmd: c3745 get_mac_addr R4 
+Jan 02 16:14:46.212 HYPERVISOR: exec_cmd: vm set_ram R4 256 
+Jan 02 16:14:46.212 HYPERVISOR: exec_cmd: vm set_nvram R4 256 
+Jan 02 16:14:46.213 HYPERVISOR: exec_cmd: vm set_exec_area R4 64 
+Jan 02 16:14:46.215 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:14:46.216 HYPERVISOR: exec_cmd: vm slot_add_binding R4 3 0 NM-1FE-TX 
+Jan 02 16:14:46.217 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:14:46.218 HYPERVISOR: exec_cmd: vm slot_add_binding R4 1 0 NM-1FE-TX 
+Jan 02 16:14:46.219 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:14:46.219 HYPERVISOR: exec_cmd: vm set_idle_pc R4 0x60ba18a8 
+Jan 02 16:14:46.220 HYPERVISOR: exec_cmd: c3745 set_mac_addr R4 c404.4810.0000 
+Jan 02 16:14:46.221 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:14:46.221 HYPERVISOR: exec_cmd: vm slot_add_binding R4 2 0 NM-1FE-TX 
+Jan 02 16:14:46.222 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:14:46.223 HYPERVISOR: exec_cmd: vm slot_add_binding R4 4 0 NM-1FE-TX 
+Jan 02 16:14:46.223 HYPERVISOR: exec_cmd: vm set_disk0 R4 0 
+Jan 02 16:14:46.224 HYPERVISOR: exec_cmd: vm set_ios R4 C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Jan 02 16:14:46.225 HYPERVISOR: exec_cmd: vm set_config R4 configs/i4_startup-config.cfg 
+Jan 02 16:14:46.227 HYPERVISOR: exec_cmd: vm create Ghost 0 c3745 
+Jan 02 16:14:46.228 VM: VM Ghost created.
+Jan 02 16:14:46.228 HYPERVISOR: exec_cmd: vm set_ios Ghost C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Jan 02 16:14:46.228 HYPERVISOR: exec_cmd: vm set_ghost_status Ghost 1 
+Jan 02 16:14:46.228 HYPERVISOR: exec_cmd: vm set_ghost_file Ghost c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Jan 02 16:14:46.229 HYPERVISOR: exec_cmd: vm set_ram Ghost 256 
+Jan 02 16:14:46.229 HYPERVISOR: exec_cmd: vm get_status Ghost 
+Jan 02 16:14:46.229 HYPERVISOR: exec_cmd: vm start Ghost 
+Jan 02 16:14:46.609 HYPERVISOR: exec_cmd: vm get_status Ghost 
+Jan 02 16:14:46.609 HYPERVISOR: exec_cmd: vm stop Ghost 
+Jan 02 16:14:46.683 VM: VM Ghost shutdown.
+Jan 02 16:14:46.683 HYPERVISOR: exec_cmd: vm clean_delete Ghost 
+Jan 02 16:14:46.683 VM: VM Ghost destroyed.
+Jan 02 16:14:46.697 HYPERVISOR: exec_cmd: vm set_ghost_status R4 2 
+Jan 02 16:14:46.697 HYPERVISOR: exec_cmd: vm set_ghost_file R4 c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Jan 02 16:14:46.805 HYPERVISOR: exec_cmd: nio create_udp udp-99adbfa3-3cdc-4439-b154-22d8d0da953a 10001 127.0.0.1 10000 
+Jan 02 16:14:46.820 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R4 1 0 udp-99adbfa3-3cdc-4439-b154-22d8d0da953a 
+Jan 02 16:14:46.823 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:16:37.569 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:16:37.575 HYPERVISOR: exec_cmd: vm start R4 
+Jan 02 16:50:37.164 HYPERVISOR: exec_cmd: vm extract_config R4 
+Jan 02 16:54:05.742 HYPERVISOR: exec_cmd: vm extract_config R4 
+Jan 02 16:55:06.778 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:55:06.780 HYPERVISOR: exec_cmd: vm stop R4 
+Jan 02 16:55:06.943 VM: VM R4 shutdown.
+Jan 02 16:55:09.665 HYPERVISOR: exec_cmd: vm get_status R4 
+Jan 02 16:55:09.667 HYPERVISOR: exec_cmd: vm extract_config R4 
+Jan 02 16:55:09.671 HYPERVISOR: exec_cmd: vm delete R4 
+Jan 02 16:55:09.671 VM: VM R4 destroyed.
+Jan 02 16:55:09.694 HYPERVISOR: exec_cmd: hypervisor stop 
+Jan 02 16:55:10.101 HYPERVISOR: Stopped.
+Jan 02 16:55:10.103 GENERAL: reset done.

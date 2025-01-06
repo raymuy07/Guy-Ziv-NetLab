@@ -1,0 +1,56 @@
+Jan 04 10:29:51.019 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Jan 04 10:29:51.020 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 57471.
+Jan 04 10:29:51.027 HYPERVISOR: exec_cmd: hypervisor version 
+Jan 04 10:29:51.039 HYPERVISOR: exec_cmd: hypervisor uuid 
+Jan 04 10:29:51.041 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\zivza\GNS3\projects\Topology 9 - second run\project-files\dynamips 
+Jan 04 10:29:51.042 GENERAL: working_dir=C:\Users\zivza\GNS3\projects\Topology 9 - second run\project-files\dynamips
+Jan 04 10:29:51.043 HYPERVISOR: exec_cmd: vm create R8 8 c3745 
+Jan 04 10:29:51.044 VM: VM R8 created.
+Jan 04 10:29:51.053 HYPERVISOR: exec_cmd: vm set_con_tcp_port R8 2001 
+Jan 04 10:29:51.060 HYPERVISOR: exec_cmd: c3745 get_mac_addr R8 
+Jan 04 10:29:51.060 HYPERVISOR: exec_cmd: vm set_nvram R8 256 
+Jan 04 10:29:51.061 HYPERVISOR: exec_cmd: vm set_ram R8 256 
+Jan 04 10:29:51.068 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.079 HYPERVISOR: exec_cmd: vm slot_add_binding R8 2 0 NM-1FE-TX 
+Jan 04 10:29:51.081 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.087 HYPERVISOR: exec_cmd: vm set_idle_pc R8 0x60ba1664 
+Jan 04 10:29:51.094 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.100 HYPERVISOR: exec_cmd: vm slot_add_binding R8 4 0 NM-1FE-TX 
+Jan 04 10:29:51.114 HYPERVISOR: exec_cmd: vm set_exec_area R8 64 
+Jan 04 10:29:51.120 HYPERVISOR: exec_cmd: vm set_ios R8 C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Jan 04 10:29:51.127 HYPERVISOR: exec_cmd: vm set_disk0 R8 0 
+Jan 04 10:29:51.133 HYPERVISOR: exec_cmd: c3745 set_mac_addr R8 c408.6980.0000 
+Jan 04 10:29:51.140 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.147 HYPERVISOR: exec_cmd: vm slot_add_binding R8 1 0 NM-1FE-TX 
+Jan 04 10:29:51.153 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.169 HYPERVISOR: exec_cmd: vm slot_add_binding R8 3 0 NM-1FE-TX 
+Jan 04 10:29:51.170 HYPERVISOR: exec_cmd: vm set_config R8 configs/i8_startup-config.cfg 
+Jan 04 10:29:51.183 HYPERVISOR: exec_cmd: vm set_ghost_status R8 2 
+Jan 04 10:29:51.188 HYPERVISOR: exec_cmd: vm set_ghost_file R8 c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Jan 04 10:29:51.278 HYPERVISOR: exec_cmd: nio create_udp udp-acd15461-a76f-4f35-aa3a-93fd9c6cc8d0 10021 127.0.0.1 10022 
+Jan 04 10:29:51.279 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R8 1 0 udp-acd15461-a76f-4f35-aa3a-93fd9c6cc8d0 
+Jan 04 10:29:51.279 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.312 HYPERVISOR: exec_cmd: nio create_udp udp-35b714ed-d53e-4a06-9bb6-195aeced76be 10023 127.0.0.1 10024 
+Jan 04 10:29:51.326 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R8 2 0 udp-35b714ed-d53e-4a06-9bb6-195aeced76be 
+Jan 04 10:29:51.326 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:51.361 HYPERVISOR: exec_cmd: nio create_udp udp-65cc466e-da47-401f-a768-3748351ec9bc 10025 127.0.0.1 10026 
+Jan 04 10:29:51.373 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R8 3 0 udp-65cc466e-da47-401f-a768-3748351ec9bc 
+Jan 04 10:29:51.373 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:53.812 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 10:29:53.813 HYPERVISOR: exec_cmd: vm start R8 
+Jan 04 10:36:39.549 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 10:40:38.066 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 10:59:37.649 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 10:59:40.671 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 11:00:23.643 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 11:21:54.215 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 11:22:04.669 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 11:22:04.671 HYPERVISOR: exec_cmd: vm stop R8 
+Jan 04 11:22:04.911 VM: VM R8 shutdown.
+Jan 04 11:22:17.900 HYPERVISOR: exec_cmd: vm get_status R8 
+Jan 04 11:22:17.902 HYPERVISOR: exec_cmd: vm extract_config R8 
+Jan 04 11:22:17.912 HYPERVISOR: exec_cmd: vm delete R8 
+Jan 04 11:22:17.912 VM: VM R8 destroyed.
+Jan 04 11:22:17.914 HYPERVISOR: exec_cmd: hypervisor stop 
+Jan 04 11:22:18.041 HYPERVISOR: Stopped.
+Jan 04 11:22:18.041 GENERAL: reset done.

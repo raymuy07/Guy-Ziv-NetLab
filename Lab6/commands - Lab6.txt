@@ -1,0 +1,122 @@
+pwd - working path
+cd - move to path
+
+PC user & Password:
+root
+PW: snoopy
+
+PC ip configuration:
+(might need cd ..)
+nano etc/network/interfaces
+
+	auto eth0	
+	iface eth0 inet static
+	address 192.168.0.1
+	netmask 255.255.255.0
+
+part 2 -
+
+2.9 
+ip.dst == 192.168.0.2
+
+2.10
+We captured ICMP packets.
+
+2.11
+ip.addr == 192.168.0.2
+
+2.12
+10 packets were captured, because we sent 5 ping requests.
+with the filter ip.addr = 192.168.0.2 we can see 5 ping reply and 5 ping request. 
+
+part 3 -
+
+3.8. 
+icmp and ip.dst==192.168.0.2
+3.9. 
+tcp && frame.len < 100
+3.10. 
+(icmp.type == 0) || (tcp.dstport == 22)
+
+part 6 - router config:
+
+for each connected network, assign IP address:
+
+R1#configure terminal
+R1(config)#interface FastEthernet2/0
+R1(config-if)#ip address 10.0.7.1 255.255.255.0
+R1(config-if)#no shutdown
+R1(config-if)#end
+R1#show running-config
+R1#ping 192.168.1.1
+R1#write
+Building configuration...
+[OK]
+
+for coppying:
+
+configure terminal
+interface FastEthernet4/0
+ip address 10.0.10.2 255.255.255.0
+no shutdown
+end
+show running-config
+
+write
+
+
+
+part 7 - 
+
+route add:
+route add –net 192.168.2.0 netmask 255.255.255.0 gw
+192.168.1.254
+
+route delete:
+route del -net 192.168.2.0 netmask 255.255.255.0
+
+add defult gateway:
+route add default gw 192.168.1.254
+
+part 9 - config route from router1 subnet to router2 subnet:
+(router2 - 10.0.1.2..........subnet2 - 192.168.2.0/24)
+R1#configure terminal
+R1(config)#ip route 192.168.2.0 255.255.255.0 10.0.1.2
+R1(config)#end
+
+part 13 - adding default route for router:
+R2#configure terminal
+R2(config)#ip route 0.0.0.0 0.0.0.0 FastEthernet2/0
+R2(config)#end
+
+or
+
+R1#configure terminal
+R1(config)#ip route 0.0.0.0 0.0.0.0 10.x.1.2
+R1(config)#end
+
+
+
+
+LAB 6 - 
+
+
+
+
+part 2 - config OSPF in Routers
+R1#configure terminal
+R1(config)#router ospf 1
+R1(config-router)#router-id 10.x.0.y
+R1(config-router)#network 10.x.0.0 0.0.255.255 area 1
+R1(config-router)#end
+
+
+for copy(x = 1):
+
+configure terminal
+router ospf 1
+router-id 10.0.0.6
+network 10.0.0.0 0.0.255.25Zivziv5 area 1
+end
+write
+show running-config

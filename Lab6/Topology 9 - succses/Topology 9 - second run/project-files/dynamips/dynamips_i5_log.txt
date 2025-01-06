@@ -1,0 +1,20 @@
+Jan 04 10:29:50.225 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Jan 04 10:29:50.225 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 57460.
+Jan 04 10:29:50.427 HYPERVISOR: exec_cmd: hypervisor version 
+Jan 04 10:29:50.428 HYPERVISOR: exec_cmd: hypervisor uuid 
+Jan 04 10:29:50.428 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\zivza\GNS3\projects\Topology 9 - second run\project-files\dynamips 
+Jan 04 10:29:50.431 GENERAL: working_dir=C:\Users\zivza\GNS3\projects\Topology 9 - second run\project-files\dynamips
+Jan 04 10:29:50.431 HYPERVISOR: exec_cmd: ethsw create SW1 
+Jan 04 10:29:51.052 HYPERVISOR: exec_cmd: nio create_udp udp-fd0b1514-503d-4af7-a215-25cff74f9a3a 10001 127.0.0.1 10002 
+Jan 04 10:29:51.059 HYPERVISOR: exec_cmd: ethsw add_nio SW1 udp-fd0b1514-503d-4af7-a215-25cff74f9a3a 
+Jan 04 10:29:51.069 HYPERVISOR: exec_cmd: ethsw set_access_port SW1 udp-fd0b1514-503d-4af7-a215-25cff74f9a3a 1 
+Jan 04 10:29:51.114 HYPERVISOR: exec_cmd: nio create_udp udp-0e81ed41-1283-4d52-8d62-c78176d71864 10009 127.0.0.1 10010 
+Jan 04 10:29:51.120 HYPERVISOR: exec_cmd: ethsw add_nio SW1 udp-0e81ed41-1283-4d52-8d62-c78176d71864 
+Jan 04 10:29:51.132 HYPERVISOR: exec_cmd: ethsw set_access_port SW1 udp-0e81ed41-1283-4d52-8d62-c78176d71864 1 
+Jan 04 10:29:51.153 HYPERVISOR: exec_cmd: nio create_udp udp-05c04c45-fbac-479d-b60d-82ba8d69095b 10012 127.0.0.1 10011 
+Jan 04 10:29:51.154 HYPERVISOR: exec_cmd: ethsw add_nio SW1 udp-05c04c45-fbac-479d-b60d-82ba8d69095b 
+Jan 04 10:29:51.169 HYPERVISOR: exec_cmd: ethsw set_access_port SW1 udp-05c04c45-fbac-479d-b60d-82ba8d69095b 1 
+Jan 04 11:22:17.667 HYPERVISOR: exec_cmd: ethsw delete SW1 
+Jan 04 11:22:17.731 HYPERVISOR: exec_cmd: hypervisor stop 
+Jan 04 11:22:17.885 HYPERVISOR: Stopped.
+Jan 04 11:22:17.885 GENERAL: reset done.

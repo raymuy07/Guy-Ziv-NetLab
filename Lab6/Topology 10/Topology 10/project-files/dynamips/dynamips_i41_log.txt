@@ -1,0 +1,11 @@
+Dec 29 15:46:47.401 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Dec 29 15:46:47.401 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 59170.
+Dec 29 15:46:47.891 HYPERVISOR: exec_cmd: hypervisor version 
+Dec 29 15:46:47.891 HYPERVISOR: exec_cmd: hypervisor uuid 
+Dec 29 15:46:47.892 HYPERVISOR: exec_cmd: hypervisor working_dir C:/Users/zivza/GNS3/projects/Topology 6\project-files\dynamips 
+Dec 29 15:46:47.892 GENERAL: working_dir=C:/Users/zivza/GNS3/projects/Topology 6\project-files\dynamips
+Dec 29 15:46:47.893 HYPERVISOR: exec_cmd: atmsw create ATM1 
+Dec 29 15:47:24.758 HYPERVISOR: exec_cmd: atmsw delete ATM1 
+Dec 29 15:47:24.760 HYPERVISOR: exec_cmd: hypervisor stop 
+Dec 29 15:47:24.933 HYPERVISOR: Stopped.
+Dec 29 15:47:24.933 GENERAL: reset done.
