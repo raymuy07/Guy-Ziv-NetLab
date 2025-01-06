@@ -1,0 +1,52 @@
+Jan 06 11:00:41.062 HYPERVISOR: Release 0.2.14-x86/Windows (tag 2014092320)
+Jan 06 11:00:41.063 HYPERVISOR: Started on IP = 127.0.0.1, TCP port = 60245.
+Jan 06 11:00:41.263 HYPERVISOR: exec_cmd: hypervisor version 
+Jan 06 11:00:41.263 HYPERVISOR: exec_cmd: hypervisor uuid 
+Jan 06 11:00:41.263 HYPERVISOR: exec_cmd: hypervisor working_dir C:\Users\zivza\Ziv\English\reshatot\Guy-Ziv-NetLab\Lab6\Topology 9 - part 3 - with PCs\Topology 9 - part 3\project-files\dynamips 
+Jan 06 11:00:41.263 GENERAL: working_dir=C:\Users\zivza\Ziv\English\reshatot\Guy-Ziv-NetLab\Lab6\Topology 9 - part 3 - with PCs\Topology 9 - part 3\project-files\dynamips
+Jan 06 11:00:41.263 HYPERVISOR: exec_cmd: vm create R3 3 c3745 
+Jan 06 11:00:41.263 VM: VM R3 created.
+Jan 06 11:00:41.278 HYPERVISOR: exec_cmd: vm set_con_tcp_port R3 2006 
+Jan 06 11:00:41.278 HYPERVISOR: exec_cmd: c3745 get_mac_addr R3 
+Jan 06 11:00:41.278 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm slot_add_binding R3 2 0 NM-1FE-TX 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_disk0 R3 0 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm slot_add_binding R3 3 0 NM-1FE-TX 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm slot_add_binding R3 4 0 NM-1FE-TX 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: c3745 set_mac_addr R3 c403.0bbc.0000 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_ios R3 C:\Users\zivza\GNS3\images\IOS\c3745-advipservicesk9-mz.124-15.T4.extracted.bin 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_exec_area R3 64 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_idle_pc R3 0x60ba18a8 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_ram R3 256 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm slot_add_binding R3 1 0 NM-1FE-TX 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_nvram R3 256 
+Jan 06 11:00:41.293 HYPERVISOR: exec_cmd: vm set_config R3 configs/i3_startup-config.cfg 
+Jan 06 11:00:41.778 HYPERVISOR: exec_cmd: vm set_ghost_status R3 2 
+Jan 06 11:00:41.778 HYPERVISOR: exec_cmd: vm set_ghost_file R3 c3745-advipservicesk9-mz.124-15.T4.extracted.bin-256.ghost 
+Jan 06 11:00:41.981 HYPERVISOR: exec_cmd: nio create_udp udp-82287441-316e-440c-85ad-d79b74142340 10005 127.0.0.1 10004 
+Jan 06 11:00:41.981 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R3 2 0 udp-82287441-316e-440c-85ad-d79b74142340 
+Jan 06 11:00:41.981 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:42.012 HYPERVISOR: exec_cmd: nio create_udp udp-b977eabe-b224-448c-ba38-c1d51d08d4d5 10006 127.0.0.1 10007 
+Jan 06 11:00:42.028 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R3 1 0 udp-b977eabe-b224-448c-ba38-c1d51d08d4d5 
+Jan 06 11:00:42.028 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:42.122 HYPERVISOR: exec_cmd: nio create_udp udp-b4310621-6594-4b8f-aa00-9d332337d0a7 10015 127.0.0.1 10014 
+Jan 06 11:00:42.122 HYPERVISOR: exec_cmd: vm slot_add_nio_binding R3 3 0 udp-b4310621-6594-4b8f-aa00-9d332337d0a7 
+Jan 06 11:00:42.137 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:50.527 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:00:50.527 HYPERVISOR: exec_cmd: vm start R3 
+Jan 06 11:05:09.971 HYPERVISOR: exec_cmd: nio bind_filter udp-b977eabe-b224-448c-ba38-c1d51d08d4d5 2 capture 
+Jan 06 11:05:09.972 HYPERVISOR: exec_cmd: nio setup_filter udp-b977eabe-b224-448c-ba38-c1d51d08d4d5 2 en10mb C:\Users\zivza\Ziv\English\reshatot\Guy-Ziv-NetLab\Lab6\Topology 9 - part 3 - with PCs\Topology 9 - part 3\project-files\captures\R3_FastEthernet1-0_to_R2_FastEthernet2-0.pcap 
+Jan 06 11:14:51.373 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:14:51.373 HYPERVISOR: exec_cmd: vm stop R3 
+Jan 06 11:14:51.563 VM: VM R3 shutdown.
+Jan 06 11:14:55.264 HYPERVISOR: exec_cmd: vm get_status R3 
+Jan 06 11:14:55.269 HYPERVISOR: exec_cmd: vm extract_config R3 
+Jan 06 11:14:55.273 HYPERVISOR: exec_cmd: vm delete R3 
+Jan 06 11:14:55.273 VM: VM R3 destroyed.
+Jan 06 11:14:55.279 HYPERVISOR: exec_cmd: hypervisor stop 
+Jan 06 11:14:55.735 HYPERVISOR: Stopped.
+Jan 06 11:14:55.735 GENERAL: reset done.
