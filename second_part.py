@@ -329,25 +329,28 @@ def PART_B():
         * inverse-filtered image
         * Wiener-filtered image
     """
-    # ---- EDIT THESE PATHS ----
-    IMAGE_PATHS = [
-        r"path\to\drone_image1.png",
-        r"path\to\drone_image2.png",
-        r"path\to\drone_image3.png",
-        r"path\to\drone_image4.png",  # maybe vertical blur example
-    ]
-    # ROI per image (x0, y0, x1, y1) around the slanted edge
-    # >>> YOU MUST TUNE THESE COORDINATES <<<
-    ROIs = [
-        (100, 100, 400, 400),
-        (120, 120, 420, 420),
-        (80, 80, 380, 380),
-        (90, 90, 390, 390),
-    ]
-    OUTPUT_DIR = r"path\to\output_folder_part_b"
-    # ----------------------------
+    path_to_drone_images = os.path.join(os.path.dirname(__file__), "Section_2")
 
-    ensure_dir(OUTPUT_DIR)
+    # ---- ADD THIS: Define IMAGE_PATHS ----
+    IMAGE_PATHS = [
+        os.path.join(path_to_drone_images, "drone_pic1.png"),
+        os.path.join(path_to_drone_images, "drone_pic2.jpg"),
+        os.path.join(path_to_drone_images, "drone_pic3.png"),
+        os.path.join(path_to_drone_images, "drone_pic4.png"),
+    ]
+
+    # ROI per image (x0, y0, x1, y1) around the slanted edge
+    # Targeting the LEFT EDGE of the white box
+    ROIs = [
+        (200, 230, 300, 340),  # drone_pic1
+        (500, 360, 600, 520),  # drone_pic2
+        (500, 360, 600, 520),  # drone_pic3
+        (260, 380, 380, 500),  # drone_pic4
+    ]
+    
+    OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "Section_2_output")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
     summary_rows = []
 
