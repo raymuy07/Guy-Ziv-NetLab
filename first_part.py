@@ -70,7 +70,7 @@ def experiment_gaussian_noise(img: np.ndarray,
         ssim_list.append(float(s))
 
         # Save example noisy image
-        out_path = os.path.join(out_dir, f"{img_name}_gauss_sigma{sigma:.3f}.png")
+        out_path = os.path.join(out_dir, f"{img_name}_gauss_sigma{sigma}.png") #origginal sigma
         cv2.imwrite(out_path, (noisy * 255).astype(np.uint8))
 
     # Save numeric results
