@@ -24,24 +24,12 @@ def load_gray(path: str) -> np.ndarray:
 #   Part B1: ESF / LSF / MTF
 # ======================
 
-def extract_roi(img: np.ndarray,
-                roi: Tuple[int, int, int, int]) -> np.ndarray:
-    """
-    roi = (x0, y0, x1, y1)
-    User should pick ROI around the slanted edge.
-    """
-    x0, y0, x1, y1 = roi
-    return img[y0:y1, x0:x1]
 
 
 def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
     """
-    Very simplified ESF estimation:
-    - For each row, compute gradient along x.
-    - Find edge location (argmax of gradient).
-    - Align rows by shifting so that edge centers match.
-    - Average aligned rows to get 1D ESF.
-    This is not a perfect ISO 12233 implementation but follows the idea.
+    simplified ESF estimation:
+    -
     """
     h, w = roi.shape
     grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
@@ -342,10 +330,10 @@ def PART_B():
     # ROI per image (x0, y0, x1, y1) around the slanted edge
     # Targeting the LEFT EDGE of the white box
     ROIs = [
-        (200, 230, 300, 340),  # drone_pic1
-        (500, 360, 600, 520),  # drone_pic2
-        (500, 360, 600, 520),  # drone_pic3
-        (260, 380, 380, 500),  # drone_pic4
+        (210, 250, 280, 320),  # drone_pic1
+        (500, 420, 570, 500),  # drone_pic2
+        (500, 420, 580, 500),  # drone_pic3
+        (280, 390, 350, 460),  # drone_pic4
     ]
     
     OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "Section_2_output")
@@ -359,10 +347,14 @@ def PART_B():
         print(f"\n--- Processing Part B image: {base_name} ---")
 
         img = load_gray(img_path)
-        roi_img = extract_roi(img, roi)
+        x0, y0, x1, y1 = roi
+        roi_img = img[y0:y1, x0:x1]
 
         # ESF / LSF / MTF / MTF50
         esf = compute_esf_from_slanted_edge(roi_img)
+        
+        ##I think up until here the esf is calculated correctly. why is it 1d array? is that what he intended? Guy 2.12.25 
+
         lsf = compute_lsf_from_esf(esf)
         freqs, mtf = compute_mtf_from_lsf(lsf)
         mtf50 = find_mtf50(freqs, mtf)
@@ -380,8 +372,8 @@ def PART_B():
         B3_blur = blur_metric_B3_global_horizontal_gradient(img)
 
         # For restored images, recompute ESF/LSF/MTF from same ROI
-        roi_inv = extract_roi(inv_img, roi)
-        roi_wiener = extract_roi(wiener_img, roi)
+        roi_inv = inv_img[y0:y1, x0:x1]
+        roi_wiener = wiener_img[y0:y1, x0:x1]
 
         esf_inv = compute_esf_from_slanted_edge(roi_inv)
         lsf_inv = compute_lsf_from_esf(esf_inv)
