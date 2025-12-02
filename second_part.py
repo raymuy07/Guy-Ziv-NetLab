@@ -35,7 +35,7 @@ def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
     grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
 
     # find edge positions per row
-    edge_pos = np.argmax(grad, axis=1)  # (h,)
+    edge_pos = np.argmax(np.abs(grad), axis=1)  # Use abs() for robustness
 
     # reference position = median edge index
     ref_pos = int(np.median(edge_pos))
@@ -44,27 +44,42 @@ def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
     for y in range(h):
         row = roi[y, :]
         shift = ref_pos - edge_pos[y]
-        # shift row using np.roll (circular) then crop
         row_shifted = np.roll(row, shift)
         aligned_rows.append(row_shifted)
 
     aligned_rows = np.stack(aligned_rows, axis=0)  # (h, w)
-    esf = np.mean(aligned_rows, axis=0)           # 1D ESF
-    # normalize to [0,1]
-    esf_min, esf_max = esf.min(), esf.max()
-    if esf_max > esf_min:
-        esf = (esf - esf_min) / (esf_max - esf_min)
-    else:
-        esf[:] = 0.0
-    return esf
+    
+    return aligned_rows
+
+    # esf = np.mean(aligned_rows, axis=0)           # 1D ESF
+    # # normalize to [0,1]
+    # esf_min, esf_max = esf.min(), esf.max()
+    # if esf_max > esf_min:
+    #     esf = (esf - esf_min) / (esf_max - esf_min)
+    # else:
+    #     esf[:] = 0.0
+    # return esf
 
 
 def compute_lsf_from_esf(esf: np.ndarray) -> np.ndarray:
     """
     LSF = derivative of ESF.
     """
-    lsf = np.diff(esf)
+    lsf_rows = np.diff(esf, axis=1)  # (h, w-1)
+    
+    # Average all LSF rows
+    lsf = np.mean(lsf_rows, axis=0)  # (w-1,)
+    
+    margin = 10  
+    lsf = lsf[margin:-margin]
+    
+    # Make sure LSF sums to positive (flip if needed)
+    if lsf.sum() < 0:
+        lsf = -lsf
+    
     return lsf
+    # lsf = np.diff(esf)
+    # return lsf
 
 
 def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
@@ -72,26 +87,22 @@ def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
     Compute 1D MTF (magnitude of FFT of LSF), normalized s.t. MTF(0)=1.
     Returns (freqs, mtf).
     """
-    # zero-pad a bit for smoother spectrum
-    n = len(lsf)
-    n_fft = int(2 ** np.ceil(np.log2(4 * n)))
-    L = np.zeros(n_fft, dtype=np.float32)
-    L[:n] = lsf
-
-    L_fft = np.fft.fft(L)
+    # 1. FFT directly on LSF
+    L_fft = np.fft.fft(lsf)
     mtf = np.abs(L_fft)
-
-    # frequencies (cycles per pixel)
-    freqs = np.fft.fftfreq(n_fft, d=sample_spacing)
-
-    # keep only non-negative frequencies
+    
+    # 2. Get frequencies
+    n = len(lsf)
+    freqs = np.fft.fftfreq(n, d=1.0)  # d=1.0 means 1 pixel spacing
+    
+    # 3. Keep only positive frequencies
     mask = freqs >= 0
     freqs = freqs[mask]
     mtf = mtf[mask]
-
-    # normalize so that MTF(f=0) = 1
-    if mtf[0] != 0:
-        mtf = mtf / mtf[0]
+    
+    # 4. Normalize so MTF(0) = 1
+    mtf = mtf / mtf[0]
+    
     return freqs, mtf
 
 
@@ -100,24 +111,13 @@ def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
     Find frequency where MTF falls to 0.5 (MTF50).
     Uses linear interpolation between nearest points.
     """
-    # we assume mtf is monotonically decreasing (approx)
-    # find first index where mtf < 0.5
     below = np.where(mtf <= 0.5)[0]
+    
     if len(below) == 0:
-        # never reaches 0.5
-        return float(freqs[-1])
-
+        return float(freqs[-1])  # Never reaches 0.5
+    
     idx = below[0]
-    if idx == 0:
-        return float(freqs[0])
-
-    # interpolate between (idx-1, idx)
-    x0, y0 = freqs[idx - 1], mtf[idx - 1]
-    x1, y1 = freqs[idx], mtf[idx]
-    if y1 == y0:
-        return float(x1)
-    alpha = (0.5 - y0) / (y1 - y0)
-    return float(x0 + alpha * (x1 - x0))
+    return float(freqs[idx])
 
 
 # ======================
@@ -359,6 +359,10 @@ def PART_B():
         freqs, mtf = compute_mtf_from_lsf(lsf)
         mtf50 = find_mtf50(freqs, mtf)
 
+        ## Now we got the sharpnees horizontal index B2
+        ## in the first picture the mtf behaves correct but the next ones no..
+        ##C.3
+        
         # PSF from LSF
         psf = build_psf_from_lsf(lsf, length=img.shape[1])
 
