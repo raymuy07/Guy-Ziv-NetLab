@@ -26,98 +26,172 @@ def load_gray(path: str) -> np.ndarray:
 
 
 
-def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
+def compute_esf_from_slanted_edge(roi: np.ndarray, oversample: int = 4) -> np.ndarray:
     """
-    simplified ESF estimation:
-    -
-    """
-    h, w = roi.shape
-    grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
-
-    # find edge positions per row
-    edge_pos = np.argmax(np.abs(grad), axis=1)  # Use abs() for robustness
-
-    # reference position = median edge index
-    ref_pos = int(np.median(edge_pos))
-
-    aligned_rows = []
-    for y in range(h):
-        row = roi[y, :]
-        shift = ref_pos - edge_pos[y]
-        row_shifted = np.roll(row, shift)
-        aligned_rows.append(row_shifted)
-
-    aligned_rows = np.stack(aligned_rows, axis=0)  # (h, w)
+    Compute ESF from slanted edge ROI using the standard slanted edge method.
+    Projects the slanted edge onto a perpendicular direction to create super-sampled ESF.
     
-    return aligned_rows
-
-    # esf = np.mean(aligned_rows, axis=0)           # 1D ESF
-    # # normalize to [0,1]
-    # esf_min, esf_max = esf.min(), esf.max()
-    # if esf_max > esf_min:
-    #     esf = (esf - esf_min) / (esf_max - esf_min)
-    # else:
-    #     esf[:] = 0.0
-    # return esf
+    Simple implementation:
+    1. For each row, find edge position (where gradient is maximum)
+    2. Project pixel distances from edge onto perpendicular axis
+    3. Bin values to create super-sampled ESF
+    
+    Args:
+        roi: ROI containing slanted edge (rows, cols)
+        oversample: Oversampling factor for ESF (default 4)
+    
+    Returns:
+        ESF: Edge Spread Function (1D array, normalized to [0,1])
+    """
+    rows, cols = roi.shape
+    
+    # Find edge position for each row (where horizontal gradient is max)
+    # Simple approach: for each row, find where gradient is maximum
+    edge_positions = []
+    for r in range(rows):
+        row = roi[r, :]
+        # Simple gradient: difference between adjacent pixels
+        grad = np.diff(row)
+        # Find position of maximum absolute gradient (the edge)
+        edge_pos = np.argmax(np.abs(grad))
+        edge_positions.append(edge_pos)
+    
+    # Fit a line to edge positions to get edge angle
+    y_coords = np.arange(rows)
+    if len(edge_positions) > 1:
+        # Simple linear fit: x = a*y + b
+        coeffs = np.polyfit(y_coords, edge_positions, 1)
+    else:
+        # Single point: use constant edge position
+        coeffs = [0, edge_positions[0] if len(edge_positions) > 0 else cols/2]
+    
+    # Project each pixel onto perpendicular direction
+    # Distance from edge = (x - edge_x) where edge_x is the fitted edge position
+    num_bins = cols * oversample
+    esf_bins = np.zeros(num_bins)
+    bin_counts = np.zeros(num_bins)
+    
+    center_bin = num_bins // 2
+    
+    for r in range(rows):
+        # Calculate edge position for this row using fitted line
+        edge_x = coeffs[1] + coeffs[0] * r
+        
+        for c in range(cols):
+            # Perpendicular distance from edge (in pixels)
+            dist = c - edge_x
+            
+            # Map to bin index
+            bin_idx = int(center_bin + dist * oversample)
+            
+            if 0 <= bin_idx < num_bins:
+                esf_bins[bin_idx] += roi[r, c]
+                bin_counts[bin_idx] += 1
+    
+    # Average values in each bin
+    mask = bin_counts > 0
+    esf = np.zeros_like(esf_bins)
+    esf[mask] = esf_bins[mask] / bin_counts[mask]
+    
+    # Remove empty bins at edges
+    valid = np.where(bin_counts > 0)[0]
+    if len(valid) > 0:
+        esf = esf[valid[0]:valid[-1]+1]
+    else:
+        esf = np.array([0.0, 1.0])  # Fallback
+    
+    # Normalize to [0, 1]
+    esf_min, esf_max = esf.min(), esf.max()
+    if esf_max > esf_min:
+        esf = (esf - esf_min) / (esf_max - esf_min)
+    else:
+        esf = np.zeros_like(esf)
+    
+    return esf
 
 
 def compute_lsf_from_esf(esf: np.ndarray) -> np.ndarray:
     """
-    LSF = derivative of ESF.
+    Compute LSF from ESF by differentiation.
+    LSF = d(ESF)/dx
+    
+    Returns:
+        LSF: Line Spread Function (1D array, normalized to sum to 1)
     """
-    lsf_rows = np.diff(esf, axis=1)  # (h, w-1)
+    # Differentiate ESF to get LSF
+    lsf = np.diff(esf)
     
-    # Average all LSF rows
-    lsf = np.mean(lsf_rows, axis=0)  # (w-1,)
-    
-    margin = 10  
-    lsf = lsf[margin:-margin]
-    
-    # Make sure LSF sums to positive (flip if needed)
-    if lsf.sum() < 0:
-        lsf = -lsf
+    # Normalize to sum to 1 (area under curve = 1)
+    lsf_sum = np.sum(np.abs(lsf))
+    if lsf_sum > 0:
+        lsf = lsf / lsf_sum
     
     return lsf
-    # lsf = np.diff(esf)
-    # return lsf
 
 
 def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
     """
-    Compute 1D MTF (magnitude of FFT of LSF), normalized s.t. MTF(0)=1.
-    Returns (freqs, mtf).
+    Compute 1D MTF from LSF using FFT.
+    Simple implementation: MTF = |FFT(LSF)|
+    
+    Args:
+        lsf: Line Spread Function (1D array)
+        sample_spacing: Spacing between samples in pixels (default 1.0)
+    
+    Returns:
+        freqs: Spatial frequencies in cycles/pixel
+        mtf: Modulation Transfer Function (magnitude, normalized to MTF(0)=1)
     """
-    # 1. FFT directly on LSF
-    L_fft = np.fft.fft(lsf)
-    mtf = np.abs(L_fft)
+    N = len(lsf)
+    if N < 2:
+        return np.array([0.0]), np.array([1.0])
     
-    # 2. Get frequencies
-    n = len(lsf)
-    freqs = np.fft.fftfreq(n, d=1.0)  # d=1.0 means 1 pixel spacing
+    # Compute FFT of LSF
+    lsf_fft = np.fft.fft(lsf)
+    mtf_full = np.abs(lsf_fft)
     
-    # 3. Keep only positive frequencies
-    mask = freqs >= 0
-    freqs = freqs[mask]
-    mtf = mtf[mask]
+    # Normalize so MTF(0) = 1
+    if mtf_full[0] > 0:
+        mtf_full = mtf_full / mtf_full[0]
     
-    # 4. Normalize so MTF(0) = 1
-    mtf = mtf / mtf[0]
+    # Get frequency axis
+    freqs_full = np.fft.fftfreq(N, d=sample_spacing)
+    
+    # Keep only positive frequencies (up to Nyquist)
+    mask = freqs_full >= 0
+    freqs = freqs_full[mask]
+    mtf = mtf_full[mask]
+    
+    # Only keep up to Nyquist frequency (0.5 cycles/pixel)
+    nyquist_mask = freqs <= 0.5
+    freqs = freqs[nyquist_mask]
+    mtf = mtf[nyquist_mask]
     
     return freqs, mtf
 
 
 def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
     """
-    Find frequency where MTF falls to 0.5 (MTF50).
+    Find frequency where MTF falls to 0.5 (MTF50), matching MATLAB implementation.
     Uses linear interpolation between nearest points.
     """
     below = np.where(mtf <= 0.5)[0]
     
     if len(below) == 0:
-        return float(freqs[-1])  # Never reaches 0.5
+        return np.nan  # Never reaches 0.5
     
     idx = below[0]
-    return float(freqs[idx])
+    
+    if idx == 0:
+        return float(freqs[0])
+    else:
+        # Linear interpolation between two points around MTF=0.5
+        x1f = freqs[idx - 1]
+        y1f = mtf[idx - 1]
+        x2f = freqs[idx]
+        y2f = mtf[idx]
+        mtf50 = x1f + (0.5 - y1f) * (x2f - x1f) / (y2f - y1f)
+        return float(mtf50)
 
 
 # ======================
@@ -126,17 +200,17 @@ def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
 
 def build_psf_from_lsf(lsf: np.ndarray, length: int) -> np.ndarray:
     """
-    Build 1D PSF from 1D LSF by centering it in an array of given length.
+    Build 1D PSF from 1D LSF, matching MATLAB implementation.
+    Takes absolute value of LSF and places it at the start of the array.
     """
-    psf = np.zeros(length, dtype=np.float32)
-    n = min(len(lsf), length)
-    start = (length - n) // 2
-    psf[start:start + n] = lsf[:n]
-    # normalize energy
-    s = psf.sum()
-    if s != 0:
-        psf /= s
-    return psf
+    psf_1d = np.abs(lsf)
+    psf_1d = psf_1d / np.sum(psf_1d)
+    psf_len = len(psf_1d)
+    
+    h_row = np.zeros(length, dtype=np.float32)
+    h_row[:psf_len] = psf_1d
+    
+    return h_row
 
 
 def deblur_inverse_filter(img: np.ndarray,
@@ -216,31 +290,18 @@ def deblur_wiener(img: np.ndarray,
 
 def blur_metric_B1_from_esf(esf: np.ndarray) -> float:
     """
-    B1: 1 / (x90 - x10), where x10, x90 are 10% and 90% points of ESF.
-    Larger B1 => sharper.
+    B1: 10-90% edge width in pixels, matching MATLAB implementation.
+    Smaller B1 => sharper (opposite of previous definition).
     """
-    # assume esf already normalized [0,1]
-    x = np.arange(len(esf))
-
-    def interp_cross(level: float) -> float:
-        idx = np.where(esf >= level)[0]
-        if len(idx) == 0:
-            return float(x[-1])
-        i = idx[0]
-        if i == 0:
-            return float(x[0])
-        x0, y0 = x[i - 1], esf[i - 1]
-        x1, y1 = x[i], esf[i]
-        if y1 == y0:
-            return float(x1)
-        a = (level - y0) / (y1 - y0)
-        return float(x0 + a * (x1 - x0))
-
-    x10 = interp_cross(0.1)
-    x90 = interp_cross(0.9)
-    width = x90 - x10 if x90 > x10 else 1.0
-    B1 = 1.0 / width
-    return float(B1)
+    # ESF is already normalized [0,1]
+    idx10 = np.where(esf >= 0.10)[0]
+    idx90 = np.where(esf >= 0.90)[0]
+    
+    if len(idx10) == 0 or len(idx90) == 0:
+        return np.nan
+    
+    B1 = float(idx90[0] - idx10[0])
+    return B1
 
 
 def blur_metric_B2_from_mtf50(mtf50_freq: float) -> float:
@@ -350,11 +411,8 @@ def PART_B():
         x0, y0, x1, y1 = roi
         roi_img = img[y0:y1, x0:x1]
 
-        # ESF / LSF / MTF / MTF50
+        # ESF / LSF / MTF / MTF50 (slanted edge method)
         esf = compute_esf_from_slanted_edge(roi_img)
-        
-        ##I think up until here the esf is calculated correctly. why is it 1d array? is that what he intended? Guy 2.12.25 
-
         lsf = compute_lsf_from_esf(esf)
         freqs, mtf = compute_mtf_from_lsf(lsf)
         mtf50 = find_mtf50(freqs, mtf)
