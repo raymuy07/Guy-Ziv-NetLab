@@ -24,100 +24,73 @@ def load_gray(path: str) -> np.ndarray:
 #   Part B1: ESF / LSF / MTF
 # ======================
 
-
-
 def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
-    """
-    simplified ESF estimation:
-    -
-    """
+    """ESF from nearly vertical edge"""
     h, w = roi.shape
-    grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
-
-    # find edge positions per row
-    edge_pos = np.argmax(np.abs(grad), axis=1)  # Use abs() for robustness
-
-    # reference position = median edge index
-    ref_pos = int(np.median(edge_pos))
-
-    aligned_rows = []
-    for y in range(h):
-        row = roi[y, :]
-        shift = ref_pos - edge_pos[y]
-        row_shifted = np.roll(row, shift)
-        aligned_rows.append(row_shifted)
-
-    aligned_rows = np.stack(aligned_rows, axis=0)  # (h, w)
     
-    return aligned_rows
-
-    # esf = np.mean(aligned_rows, axis=0)           # 1D ESF
-    # # normalize to [0,1]
-    # esf_min, esf_max = esf.min(), esf.max()
-    # if esf_max > esf_min:
-    #     esf = (esf - esf_min) / (esf_max - esf_min)
-    # else:
-    #     esf[:] = 0.0
-    # return esf
+    # Find edge position in each row
+    grad = np.abs(np.diff(roi, axis=1))
+    edge_pos = np.argmax(grad, axis=1)
+    
+    # Align all rows to median edge position
+    ref_pos = int(np.median(edge_pos))
+    aligned_rows = []
+    
+    for y in range(h):
+        shift = ref_pos - edge_pos[y]
+        row_shifted = np.roll(roi[y, :], shift)
+        aligned_rows.append(row_shifted)
+    
+    aligned_rows = np.array(aligned_rows)
+    
+    # Average to get 1D ESF, trim edges to avoid circular wrap corruption
+    esf = np.mean(aligned_rows, axis=0)
+    margin = 10
+    esf = esf[margin:-margin]
+    
+    return esf
 
 
 def compute_lsf_from_esf(esf: np.ndarray) -> np.ndarray:
-    """
-    LSF = derivative of ESF.
-    """
-    lsf_rows = np.diff(esf, axis=1)  # (h, w-1)
+    """LSF = derivative of ESF"""
+    lsf = np.diff(esf)
     
-    # Average all LSF rows
-    lsf = np.mean(lsf_rows, axis=0)  # (w-1,)
-    
-    margin = 10  
-    lsf = lsf[margin:-margin]
-    
-    # Make sure LSF sums to positive (flip if needed)
+    # Ensure LSF is positive
     if lsf.sum() < 0:
         lsf = -lsf
     
     return lsf
-    # lsf = np.diff(esf)
-    # return lsf
 
 
-def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
-    """
-    Compute 1D MTF (magnitude of FFT of LSF), normalized s.t. MTF(0)=1.
-    Returns (freqs, mtf).
-    """
-    # 1. FFT directly on LSF
-    L_fft = np.fft.fft(lsf)
-    mtf = np.abs(L_fft)
+def compute_mtf_from_lsf(lsf: np.ndarray):
+    """MTF from LSF using FFT, normalized to MTF(0)=1"""
+    mtf = np.abs(np.fft.fft(lsf))
+    freqs = np.fft.fftfreq(len(lsf), d=1.0)
     
-    # 2. Get frequencies
-    n = len(lsf)
-    freqs = np.fft.fftfreq(n, d=1.0)  # d=1.0 means 1 pixel spacing
-    
-    # 3. Keep only positive frequencies
+    # Positive frequencies only
     mask = freqs >= 0
     freqs = freqs[mask]
     mtf = mtf[mask]
     
-    # 4. Normalize so MTF(0) = 1
+    # Normalize
     mtf = mtf / mtf[0]
     
     return freqs, mtf
 
 
 def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
-    """
-    Find frequency where MTF falls to 0.5 (MTF50).
-    Uses linear interpolation between nearest points.
-    """
-    below = np.where(mtf <= 0.5)[0]
+    """Find frequency where MTF = 0.5"""
+    idx = np.where(mtf <= 0.5)[0]
     
-    if len(below) == 0:
-        return float(freqs[-1])  # Never reaches 0.5
+    if len(idx) == 0:
+        return freqs[-1]
     
-    idx = below[0]
-    return float(freqs[idx])
+    # Linear interpolation
+    i = idx[0]
+    if i == 0:
+        return freqs[0]
+    
+    return np.interp(0.5, [mtf[i], mtf[i-1]], [freqs[i], freqs[i-1]])
 
 
 # ======================
@@ -331,7 +304,7 @@ def PART_B():
     # Targeting the LEFT EDGE of the white box
     ROIs = [
         (210, 250, 280, 320),  # drone_pic1
-        (500, 420, 570, 500),  # drone_pic2
+        (500, 420, 570, 470),  # drone_pic2
         (500, 420, 580, 500),  # drone_pic3
         (280, 390, 350, 460),  # drone_pic4
     ]
