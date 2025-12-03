@@ -26,98 +26,116 @@ def load_gray(path: str) -> np.ndarray:
 
 
 
-def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
+def compute_lsf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
     """
-    simplified ESF estimation:
-    -
+    Compute LSF from slanted edge ROI, matching MATLAB implementation.
+    For each row: smooth, compute gradient, align peaks, then average.
+    Returns 1D LSF normalized to sum to 1.
     """
-    h, w = roi.shape
-    grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
-
-    # find edge positions per row
-    edge_pos = np.argmax(np.abs(grad), axis=1)  # Use abs() for robustness
-
-    # reference position = median edge index
-    ref_pos = int(np.median(edge_pos))
-
-    aligned_rows = []
-    for y in range(h):
-        row = roi[y, :]
-        shift = ref_pos - edge_pos[y]
-        row_shifted = np.roll(row, shift)
-        aligned_rows.append(row_shifted)
-
-    aligned_rows = np.stack(aligned_rows, axis=0)  # (h, w)
+    rows, cols = roi.shape
+    center_col = int(np.ceil(cols / 2))
+    lsf_rows = np.zeros((rows, cols))
     
-    return aligned_rows
+    # Smoothing kernel (5-point moving average)
+    smooth_len = 5
+    smooth_kernel = np.ones(smooth_len) / smooth_len
+    
+    for r in range(rows):
+        profile = roi[r, :]
+        
+        # Smooth the profile
+        profile_smooth = np.convolve(profile, smooth_kernel, mode='same')
+        
+        # Compute gradient (LSF for this row)
+        lsf_row = np.gradient(profile_smooth)
+        
+        # Find peak (max absolute value)
+        idx_max = np.argmax(np.abs(lsf_row))
+        
+        # Align to center
+        shift = center_col - idx_max
+        lsf_aligned = np.roll(lsf_row, shift)
+        
+        lsf_rows[r, :] = lsf_aligned
+    
+    # Average all rows
+    LSF = np.mean(lsf_rows, axis=0)
+    
+    # Normalize to sum to 1
+    LSF = LSF / np.sum(LSF)
+    
+    return LSF
 
-    # esf = np.mean(aligned_rows, axis=0)           # 1D ESF
-    # # normalize to [0,1]
-    # esf_min, esf_max = esf.min(), esf.max()
-    # if esf_max > esf_min:
-    #     esf = (esf - esf_min) / (esf_max - esf_min)
-    # else:
-    #     esf[:] = 0.0
-    # return esf
 
-
-def compute_lsf_from_esf(esf: np.ndarray) -> np.ndarray:
+def compute_esf_from_lsf(lsf: np.ndarray) -> np.ndarray:
     """
-    LSF = derivative of ESF.
+    Compute ESF from LSF: cumulative sum, normalized to [0,1].
     """
-    lsf_rows = np.diff(esf, axis=1)  # (h, w-1)
-    
-    # Average all LSF rows
-    lsf = np.mean(lsf_rows, axis=0)  # (w-1,)
-    
-    margin = 10  
-    lsf = lsf[margin:-margin]
-    
-    # Make sure LSF sums to positive (flip if needed)
-    if lsf.sum() < 0:
-        lsf = -lsf
-    
-    return lsf
-    # lsf = np.diff(esf)
-    # return lsf
+    ESF = np.cumsum(lsf)
+    ESF = ESF - np.min(ESF)
+    ESF = ESF / np.max(ESF)
+    return ESF
 
 
 def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
     """
-    Compute 1D MTF (magnitude of FFT of LSF), normalized s.t. MTF(0)=1.
-    Returns (freqs, mtf).
+    Compute 1D MTF from LSF, matching MATLAB implementation.
+    Applies Hann window before FFT, then normalizes.
+    Returns (freqs, mtf) where freqs is in cycles/pixel.
     """
-    # 1. FFT directly on LSF
-    L_fft = np.fft.fft(lsf)
-    mtf = np.abs(L_fft)
+    N = len(lsf)
+    if N < 2:
+        # Edge case: return DC component only
+        return np.array([0.0]), np.array([1.0])
     
-    # 2. Get frequencies
-    n = len(lsf)
-    freqs = np.fft.fftfreq(n, d=1.0)  # d=1.0 means 1 pixel spacing
+    n = np.arange(N)
     
-    # 3. Keep only positive frequencies
-    mask = freqs >= 0
-    freqs = freqs[mask]
-    mtf = mtf[mask]
+    # Apply Hann window (raised cosine)
+    # Handle N=1 case (though we check above)
+    if N > 1:
+        w = 0.5 - 0.5 * np.cos(2 * np.pi * n / (N - 1))
+    else:
+        w = np.ones(N)
+    LSF_windowed = lsf * w
     
-    # 4. Normalize so MTF(0) = 1
-    mtf = mtf / mtf[0]
+    # FFT
+    MTF_full = np.abs(np.fft.fft(LSF_windowed))
     
-    return freqs, mtf
+    # Normalize by MTF(0)
+    MTF_full = MTF_full / MTF_full[0]
+    
+    # Keep only first half (positive frequencies)
+    half = np.arange(1, int(np.floor(N / 2)) + 1)  # 1:floor(N/2)
+    MTF = MTF_full[half - 1]  # Convert to 0-based indexing
+    
+    # Frequency axis: (half - 1) / N in cycles/pixel
+    f_MTF = (half - 1) / N
+    
+    return f_MTF, MTF
 
 
 def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
     """
-    Find frequency where MTF falls to 0.5 (MTF50).
+    Find frequency where MTF falls to 0.5 (MTF50), matching MATLAB implementation.
     Uses linear interpolation between nearest points.
     """
     below = np.where(mtf <= 0.5)[0]
     
     if len(below) == 0:
-        return float(freqs[-1])  # Never reaches 0.5
+        return np.nan  # Never reaches 0.5
     
     idx = below[0]
-    return float(freqs[idx])
+    
+    if idx == 0:
+        return float(freqs[0])
+    else:
+        # Linear interpolation between two points around MTF=0.5
+        x1f = freqs[idx - 1]
+        y1f = mtf[idx - 1]
+        x2f = freqs[idx]
+        y2f = mtf[idx]
+        mtf50 = x1f + (0.5 - y1f) * (x2f - x1f) / (y2f - y1f)
+        return float(mtf50)
 
 
 # ======================
@@ -126,17 +144,17 @@ def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
 
 def build_psf_from_lsf(lsf: np.ndarray, length: int) -> np.ndarray:
     """
-    Build 1D PSF from 1D LSF by centering it in an array of given length.
+    Build 1D PSF from 1D LSF, matching MATLAB implementation.
+    Takes absolute value of LSF and places it at the start of the array.
     """
-    psf = np.zeros(length, dtype=np.float32)
-    n = min(len(lsf), length)
-    start = (length - n) // 2
-    psf[start:start + n] = lsf[:n]
-    # normalize energy
-    s = psf.sum()
-    if s != 0:
-        psf /= s
-    return psf
+    psf_1d = np.abs(lsf)
+    psf_1d = psf_1d / np.sum(psf_1d)
+    psf_len = len(psf_1d)
+    
+    h_row = np.zeros(length, dtype=np.float32)
+    h_row[:psf_len] = psf_1d
+    
+    return h_row
 
 
 def deblur_inverse_filter(img: np.ndarray,
@@ -216,31 +234,18 @@ def deblur_wiener(img: np.ndarray,
 
 def blur_metric_B1_from_esf(esf: np.ndarray) -> float:
     """
-    B1: 1 / (x90 - x10), where x10, x90 are 10% and 90% points of ESF.
-    Larger B1 => sharper.
+    B1: 10-90% edge width in pixels, matching MATLAB implementation.
+    Smaller B1 => sharper (opposite of previous definition).
     """
-    # assume esf already normalized [0,1]
-    x = np.arange(len(esf))
-
-    def interp_cross(level: float) -> float:
-        idx = np.where(esf >= level)[0]
-        if len(idx) == 0:
-            return float(x[-1])
-        i = idx[0]
-        if i == 0:
-            return float(x[0])
-        x0, y0 = x[i - 1], esf[i - 1]
-        x1, y1 = x[i], esf[i]
-        if y1 == y0:
-            return float(x1)
-        a = (level - y0) / (y1 - y0)
-        return float(x0 + a * (x1 - x0))
-
-    x10 = interp_cross(0.1)
-    x90 = interp_cross(0.9)
-    width = x90 - x10 if x90 > x10 else 1.0
-    B1 = 1.0 / width
-    return float(B1)
+    # ESF is already normalized [0,1]
+    idx10 = np.where(esf >= 0.10)[0]
+    idx90 = np.where(esf >= 0.90)[0]
+    
+    if len(idx10) == 0 or len(idx90) == 0:
+        return np.nan
+    
+    B1 = float(idx90[0] - idx10[0])
+    return B1
 
 
 def blur_metric_B2_from_mtf50(mtf50_freq: float) -> float:
@@ -350,12 +355,9 @@ def PART_B():
         x0, y0, x1, y1 = roi
         roi_img = img[y0:y1, x0:x1]
 
-        # ESF / LSF / MTF / MTF50
-        esf = compute_esf_from_slanted_edge(roi_img)
-        
-        ##I think up until here the esf is calculated correctly. why is it 1d array? is that what he intended? Guy 2.12.25 
-
-        lsf = compute_lsf_from_esf(esf)
+        # LSF / ESF / MTF / MTF50 (matching MATLAB order)
+        lsf = compute_lsf_from_slanted_edge(roi_img)
+        esf = compute_esf_from_lsf(lsf)
         freqs, mtf = compute_mtf_from_lsf(lsf)
         mtf50 = find_mtf50(freqs, mtf)
 
@@ -375,17 +377,17 @@ def PART_B():
         B2_blur = blur_metric_B2_from_mtf50(mtf50)
         B3_blur = blur_metric_B3_global_horizontal_gradient(img)
 
-        # For restored images, recompute ESF/LSF/MTF from same ROI
+        # For restored images, recompute LSF/ESF/MTF from same ROI
         roi_inv = inv_img[y0:y1, x0:x1]
         roi_wiener = wiener_img[y0:y1, x0:x1]
 
-        esf_inv = compute_esf_from_slanted_edge(roi_inv)
-        lsf_inv = compute_lsf_from_esf(esf_inv)
+        lsf_inv = compute_lsf_from_slanted_edge(roi_inv)
+        esf_inv = compute_esf_from_lsf(lsf_inv)
         freqs_inv, mtf_inv = compute_mtf_from_lsf(lsf_inv)
         mtf50_inv = find_mtf50(freqs_inv, mtf_inv)
 
-        esf_w = compute_esf_from_slanted_edge(roi_wiener)
-        lsf_w = compute_lsf_from_esf(esf_w)
+        lsf_w = compute_lsf_from_slanted_edge(roi_wiener)
+        esf_w = compute_esf_from_lsf(lsf_w)
         freqs_w, mtf_w = compute_mtf_from_lsf(lsf_w)
         mtf50_w = find_mtf50(freqs_w, mtf_w)
 
