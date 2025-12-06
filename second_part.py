@@ -24,112 +24,73 @@ def load_gray(path: str) -> np.ndarray:
 #   Part B1: ESF / LSF / MTF
 # ======================
 
-def extract_roi(img: np.ndarray,
-                roi: Tuple[int, int, int, int]) -> np.ndarray:
-    """
-    roi = (x0, y0, x1, y1)
-    User should pick ROI around the slanted edge.
-    """
-    x0, y0, x1, y1 = roi
-    return img[y0:y1, x0:x1]
-
-
 def compute_esf_from_slanted_edge(roi: np.ndarray) -> np.ndarray:
-    """
-    Very simplified ESF estimation:
-    - For each row, compute gradient along x.
-    - Find edge location (argmax of gradient).
-    - Align rows by shifting so that edge centers match.
-    - Average aligned rows to get 1D ESF.
-    This is not a perfect ISO 12233 implementation but follows the idea.
-    """
+    """ESF from nearly vertical edge"""
     h, w = roi.shape
-    grad = np.diff(roi, axis=1)  # horizontal gradient (h, w-1)
-
-    # find edge positions per row
-    edge_pos = np.argmax(grad, axis=1)  # (h,)
-
-    # reference position = median edge index
+    
+    # Find edge position in each row
+    grad = np.abs(np.diff(roi, axis=1))
+    edge_pos = np.argmax(grad, axis=1)
+    
+    # Align all rows to median edge position
     ref_pos = int(np.median(edge_pos))
-
     aligned_rows = []
+    
     for y in range(h):
-        row = roi[y, :]
         shift = ref_pos - edge_pos[y]
-        # shift row using np.roll (circular) then crop
-        row_shifted = np.roll(row, shift)
+        row_shifted = np.roll(roi[y, :], shift)
         aligned_rows.append(row_shifted)
-
-    aligned_rows = np.stack(aligned_rows, axis=0)  # (h, w)
-    esf = np.mean(aligned_rows, axis=0)           # 1D ESF
-    # normalize to [0,1]
-    esf_min, esf_max = esf.min(), esf.max()
-    if esf_max > esf_min:
-        esf = (esf - esf_min) / (esf_max - esf_min)
-    else:
-        esf[:] = 0.0
+    
+    aligned_rows = np.array(aligned_rows)
+    
+    # Average to get 1D ESF, trim edges to avoid circular wrap corruption
+    esf = np.mean(aligned_rows, axis=0)
+    margin = 10
+    esf = esf[margin:-margin]
+    
     return esf
 
 
 def compute_lsf_from_esf(esf: np.ndarray) -> np.ndarray:
-    """
-    LSF = derivative of ESF.
-    """
+    """LSF = derivative of ESF"""
     lsf = np.diff(esf)
+    
+    # Ensure LSF is positive
+    if lsf.sum() < 0:
+        lsf = -lsf
+    
     return lsf
 
 
-def compute_mtf_from_lsf(lsf: np.ndarray, sample_spacing: float = 1.0):
-    """
-    Compute 1D MTF (magnitude of FFT of LSF), normalized s.t. MTF(0)=1.
-    Returns (freqs, mtf).
-    """
-    # zero-pad a bit for smoother spectrum
-    n = len(lsf)
-    n_fft = int(2 ** np.ceil(np.log2(4 * n)))
-    L = np.zeros(n_fft, dtype=np.float32)
-    L[:n] = lsf
-
-    L_fft = np.fft.fft(L)
-    mtf = np.abs(L_fft)
-
-    # frequencies (cycles per pixel)
-    freqs = np.fft.fftfreq(n_fft, d=sample_spacing)
-
-    # keep only non-negative frequencies
+def compute_mtf_from_lsf(lsf: np.ndarray):
+    """MTF from LSF using FFT, normalized to MTF(0)=1"""
+    mtf = np.abs(np.fft.fft(lsf))
+    freqs = np.fft.fftfreq(len(lsf), d=1.0)
+    
+    # Positive frequencies only
     mask = freqs >= 0
     freqs = freqs[mask]
     mtf = mtf[mask]
-
-    # normalize so that MTF(f=0) = 1
-    if mtf[0] != 0:
-        mtf = mtf / mtf[0]
+    
+    # Normalize
+    mtf = mtf / mtf[0]
+    
     return freqs, mtf
 
 
 def find_mtf50(freqs: np.ndarray, mtf: np.ndarray) -> float:
-    """
-    Find frequency where MTF falls to 0.5 (MTF50).
-    Uses linear interpolation between nearest points.
-    """
-    # we assume mtf is monotonically decreasing (approx)
-    # find first index where mtf < 0.5
-    below = np.where(mtf <= 0.5)[0]
-    if len(below) == 0:
-        # never reaches 0.5
-        return float(freqs[-1])
-
-    idx = below[0]
-    if idx == 0:
-        return float(freqs[0])
-
-    # interpolate between (idx-1, idx)
-    x0, y0 = freqs[idx - 1], mtf[idx - 1]
-    x1, y1 = freqs[idx], mtf[idx]
-    if y1 == y0:
-        return float(x1)
-    alpha = (0.5 - y0) / (y1 - y0)
-    return float(x0 + alpha * (x1 - x0))
+    """Find frequency where MTF = 0.5"""
+    idx = np.where(mtf <= 0.5)[0]
+    
+    if len(idx) == 0:
+        return freqs[-1]
+    
+    # Linear interpolation
+    i = idx[0]
+    if i == 0:
+        return freqs[0]
+    
+    return np.interp(0.5, [mtf[i], mtf[i-1]], [freqs[i], freqs[i-1]])
 
 
 # ======================
@@ -329,25 +290,28 @@ def PART_B():
         * inverse-filtered image
         * Wiener-filtered image
     """
-    # ---- EDIT THESE PATHS ----
-    IMAGE_PATHS = [
-        r"path\to\drone_image1.png",
-        r"path\to\drone_image2.png",
-        r"path\to\drone_image3.png",
-        r"path\to\drone_image4.png",  # maybe vertical blur example
-    ]
-    # ROI per image (x0, y0, x1, y1) around the slanted edge
-    # >>> YOU MUST TUNE THESE COORDINATES <<<
-    ROIs = [
-        (100, 100, 400, 400),
-        (120, 120, 420, 420),
-        (80, 80, 380, 380),
-        (90, 90, 390, 390),
-    ]
-    OUTPUT_DIR = r"path\to\output_folder_part_b"
-    # ----------------------------
+    path_to_drone_images = os.path.join(os.path.dirname(__file__), "Section_2")
 
-    ensure_dir(OUTPUT_DIR)
+    # ---- ADD THIS: Define IMAGE_PATHS ----
+    IMAGE_PATHS = [
+        os.path.join(path_to_drone_images, "drone_pic1.png"),
+        os.path.join(path_to_drone_images, "drone_pic2.jpg"),
+        os.path.join(path_to_drone_images, "drone_pic3.png"),
+        os.path.join(path_to_drone_images, "drone_pic4.png"),
+    ]
+
+    # ROI per image (x0, y0, x1, y1) around the slanted edge
+    # Targeting the LEFT EDGE of the white box
+    ROIs = [
+        (210, 250, 280, 320),  # drone_pic1
+        (500, 420, 570, 470),  # drone_pic2
+        (500, 420, 580, 500),  # drone_pic3
+        (280, 390, 350, 460),  # drone_pic4
+    ]
+    
+    OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "Section_2_output")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
 
     summary_rows = []
 
@@ -356,14 +320,22 @@ def PART_B():
         print(f"\n--- Processing Part B image: {base_name} ---")
 
         img = load_gray(img_path)
-        roi_img = extract_roi(img, roi)
+        x0, y0, x1, y1 = roi
+        roi_img = img[y0:y1, x0:x1]
 
         # ESF / LSF / MTF / MTF50
         esf = compute_esf_from_slanted_edge(roi_img)
+        
+        ##I think up until here the esf is calculated correctly. why is it 1d array? is that what he intended? Guy 2.12.25 
+
         lsf = compute_lsf_from_esf(esf)
         freqs, mtf = compute_mtf_from_lsf(lsf)
         mtf50 = find_mtf50(freqs, mtf)
 
+        ## Now we got the sharpnees horizontal index B2
+        ## in the first picture the mtf behaves correct but the next ones no..
+        ##C.3
+        
         # PSF from LSF
         psf = build_psf_from_lsf(lsf, length=img.shape[1])
 
@@ -377,8 +349,8 @@ def PART_B():
         B3_blur = blur_metric_B3_global_horizontal_gradient(img)
 
         # For restored images, recompute ESF/LSF/MTF from same ROI
-        roi_inv = extract_roi(inv_img, roi)
-        roi_wiener = extract_roi(wiener_img, roi)
+        roi_inv = inv_img[y0:y1, x0:x1]
+        roi_wiener = wiener_img[y0:y1, x0:x1]
 
         esf_inv = compute_esf_from_slanted_edge(roi_inv)
         lsf_inv = compute_lsf_from_esf(esf_inv)
